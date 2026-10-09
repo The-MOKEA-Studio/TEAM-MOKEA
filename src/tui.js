@@ -2126,6 +2126,7 @@ export class TUI {
     const logoRows = SPLASH_LOGO_HEIGHT / 2;
     const logoTop = Math.floor((H - logoRows - 4) / 2);
     const logoX = Math.floor((W - SPLASH_LOGO_WIDTH) / 2);
+    const loadingY = Math.min(H - 1, Math.max(logoTop + logoRows + 4, H - 2));
     const visibleRows = Math.max(0, Math.min(logoRows, Math.floor((elapsed - 100) / 95)));
     const beam = (elapsed - 800) / 65 - 4;
     const pixel = (y, x) => {
@@ -2176,11 +2177,16 @@ export class TUI {
         x = Math.floor((W - title.length) / 2);
         width = title.length;
         art = BOLD + splashFg([229, 237, 255]) + title.slice(0, reveal).padEnd(title.length) + `${ESC}22m`;
-      } else if (y === logoTop + logoRows + 3 && elapsed >= 1_650) {
+      } else if (y === logoTop + logoRows + 3 && y < loadingY && elapsed >= 1_650) {
         const subtitle = '─  S T U D I O S  ─';
         x = Math.floor((W - subtitle.length) / 2);
         width = subtitle.length;
         art = splashFg([108, 187, 224]) + subtitle;
+      } else if (y === loadingY) {
+        const dots = '.'.repeat(Math.floor(elapsed / 350) % 4).padEnd(3);
+        x = Math.floor((W - 10) / 2);
+        width = 10;
+        art = splashFg([173, 203, 225]) + 'LOADING' + splashFg([91, 194, 247]) + dots;
       }
       lines.push(splashBg(SPLASH_BG) + splashFg([35, 85, 123])
         + starField(0, x) + art + splashBg(SPLASH_BG) + splashFg([35, 85, 123])
