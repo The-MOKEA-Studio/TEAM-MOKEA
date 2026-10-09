@@ -8,7 +8,7 @@ import { spawnServer } from '../test-helpers/spawn-server.js';
 // The whole feature, witnessed: a request forwarded for a routed account must
 // reach the upstream THROUGH that account's proxy — and an account without one
 // must keep going direct. These drive the real server as a subprocess against
-// a throwaway TEAMCLAUDE_CONFIG; the SOCKS5 mock's connect log is the witness,
+// a throwaway TEAM_MOKEA_CONFIG; the SOCKS5 mock's connect log is the witness,
 // since both paths end at the same stub upstream. Reload drives the disk edits,
 // so the live-update path (sync-accounts.js) is covered too.
 
@@ -95,7 +95,7 @@ async function withServer(accounts, fn) {
 }
 
 async function reload(proxyPort) {
-  const res = await fetch(`http://127.0.0.1:${proxyPort}/teamclaude/reload`, { method: 'POST' });
+  const res = await fetch(`http://127.0.0.1:${proxyPort}/team-mokea/reload`, { method: 'POST' });
   assert.equal(res.status, 200, await res.text());
 }
 

@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 //
 // Tests that drive `src/index.js server --headless` used to each pick a port
 // with closedPort(), write it into a throwaway config and poll
-// /teamclaude/status until something answered. `node --test` runs files in
+// /team-mokea/status until something answered. `node --test` runs files in
 // parallel, so between the probe closing and the child's listen() another test
 // (or anything else on the machine) could take the port. Two outcomes, both
 // seen in CI and locally under load: the child exits with "Port N is already
@@ -49,7 +49,7 @@ export function closedPort() {
 }
 
 /**
- * One GET /teamclaude/status, parsed; null when nothing answered, when the
+ * One GET /team-mokea/status, parsed; null when nothing answered, when the
  * reply was not a 200, or when the request timed out. Bounded per attempt so
  * an accepted-but-unanswered connection cannot wedge a polling loop.
  * @param {number} port
@@ -57,7 +57,7 @@ export function closedPort() {
  */
 async function fetchStatus(port) {
   try {
-    const res = await fetch(`http://127.0.0.1:${port}/teamclaude/status`, { signal: AbortSignal.timeout(2_000) });
+    const res = await fetch(`http://127.0.0.1:${port}/team-mokea/status`, { signal: AbortSignal.timeout(2_000) });
     if (!res.ok) { await res.arrayBuffer(); return null; }
     return await res.json();
   } catch {
@@ -66,7 +66,7 @@ async function fetchStatus(port) {
 }
 
 /**
- * Poll /teamclaude/status on `port` until a reply satisfies `predicate`, or
+ * Poll /team-mokea/status on `port` until a reply satisfies `predicate`, or
  * until `stopWhen()` says there is no point waiting any longer (the child
  * exited). No overall deadline of its own: a child that hangs at startup
  * without listening is what the runner's --test-timeout is for.
@@ -106,7 +106,7 @@ export async function waitForStatus(port, predicate = () => true, { stopWhen } =
  * @returns {Promise<{ port: number, pid: number, configPath: string, dir: string, config: object, child: import('node:child_process').ChildProcess, output: () => string, stop: () => Promise<void> }>}
  */
 export async function spawnServer({ config: buildConfig, dir, env = {}, args = [] }) {
-  dir ??= await mkdtemp(join(tmpdir(), 'teamclaude-spawn-'));
+  dir ??= await mkdtemp(join(tmpdir(), 'team-mokea-spawn-'));
   const configPath = join(dir, 'config.json');
   const failures = [];
 
@@ -143,7 +143,7 @@ export async function spawnServer({ config: buildConfig, dir, env = {}, args = [
 
 function spawnChild(configPath, extraEnv, args) {
   // The child must not inherit a proxy from the shell: see test/README.md.
-  const env = { ...process.env, TEAMCLAUDE_CONFIG: configPath, TEAMCLAUDE_DISABLE_AUTOUPDATE: '1', ...extraEnv };
+  const env = { ...process.env, TEAM_MOKEA_CONFIG: configPath, TEAM_MOKEA_DISABLE_AUTOUPDATE: '1', ...extraEnv };
   for (const key of Object.keys(env)) if (/^(https?|all|no)_proxy$/i.test(key)) delete env[key];
   const child = spawn(process.execPath, [cliPath, 'server', '--headless', ...args], {
     env,

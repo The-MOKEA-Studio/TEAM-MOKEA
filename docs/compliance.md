@@ -4,7 +4,7 @@
 
 ## Who it is for
 
-TeamClaude is for **one person's work**. The "team" in the name is the agents: someone directing ten, or fifty, coding-agent sessions at once spends more than one subscription can carry, and when an account fills up every one of those sessions stops until somebody signs into another account by hand. The project exists to make that switch automatic. That is the whole of its purpose, and it has been from the start.
+Team Mokea is for **one person's work**. The "team" in the name is the agents: someone directing ten, or fifty, coding-agent sessions at once spends more than one subscription can carry, and when an account fills up every one of those sessions stops until somebody signs into another account by hand. The project exists to make that switch automatic. That is the whole of its purpose, and it has been from the start.
 
 It is a **self-hosted local proxy**. You run it on your own machine, it holds *your own* credentials, and it forwards the requests that *your own* CLI makes to the provider. It is **not** a hosted service, it does not offer a login to anyone, and it never routes requests on behalf of third parties — it only moves your own traffic through accounts you control.
 
@@ -15,7 +15,7 @@ Two things it has never been for, on any provider:
 
 ## The same stance for every provider
 
-TeamClaude started with Claude accounts and now also pools ChatGPT/Codex subscriptions and third-party backends. The scope above does not change with the provider:
+Team Mokea started with Claude accounts and now also pools ChatGPT/Codex subscriptions and third-party backends. The scope above does not change with the provider:
 
 - **Subscription accounts (Claude, ChatGPT/Codex):** your own subscriptions, used through the provider's own CLI, by you.
 - **API keys:** keys issued to you, billed to you.
@@ -28,15 +28,15 @@ Where a provider's terms are stricter than this page, the provider's terms win.
 In particular:
 
 - **Use the provider's genuine CLI.** Pointing a third-party frontend (opencode and similar) at Pro/Max OAuth credentials is the pattern Anthropic explicitly restricts.
-- **How much may run unattended is the client's call, not the proxy's.** Each provider decides what its own CLI may do without a person at the keyboard — background work, scheduled tasks, long runs — and builds those limits into that CLI. TeamClaude routes requests between your subscriptions and that client; it neither widens what the client allows nor narrows it. A long run the client permits can be carried across an account switch or a quota reset ([`holdSeconds`](quota.md#hold-on-exhaustion)); a run the client does not permit does not become permitted by going through a proxy.
+- **How much may run unattended is the client's call, not the proxy's.** Each provider decides what its own CLI may do without a person at the keyboard — background work, scheduled tasks, long runs — and builds those limits into that CLI. Team Mokea routes requests between your subscriptions and that client; it neither widens what the client allows nor narrows it. A long run the client permits can be carried across an account switch or a quota reset ([`holdSeconds`](quota.md#hold-on-exhaustion)); a run the client does not permit does not become permitted by going through a proxy.
 - **The proxy's own background calls are off by default.** Two features make requests that no client asked for — [keep-warm](quota.md#keep-warm) and the [quota probe](quota.md#quota-probe) — and you turn them on yourself.
 - **Only use subscriptions you legitimately purchased.**
 
 ## Anthropic: rotating across multiple subscriptions
 
-This is the question people ask most. Note that Claude Code's own `/extra-usage` flow already offers signing into a *different* account when you hit a limit. "Switch to another account you own to get more usage" is a move the native client itself surfaces; TeamClaude automates that same switch. Anthropic hasn't explicitly blessed *automated* pooling, so weigh it against the current [Claude Code legal terms](https://code.claude.com/docs/en/legal-and-compliance) — but the idea that using more than one of your own subscriptions is inherently off-limits is hard to square with the first-party client offering to do the same thing by hand.
+This is the question people ask most. Note that Claude Code's own `/extra-usage` flow already offers signing into a *different* account when you hit a limit. "Switch to another account you own to get more usage" is a move the native client itself surfaces; Team Mokea automates that same switch. Anthropic hasn't explicitly blessed *automated* pooling, so weigh it against the current [Claude Code legal terms](https://code.claude.com/docs/en/legal-and-compliance) — but the idea that using more than one of your own subscriptions is inherently off-limits is hard to square with the first-party client offering to do the same thing by hand.
 
-To the best of the maintainer's knowledge, using TeamClaude as intended — the real Claude Code CLI, used as it allows, on your own subscriptions — is consistent with Claude Code's Terms. See [#107](https://github.com/KarpelesLab/teamclaude/issues/107) for the full write-up.
+To the best of the maintainer's knowledge, using Team Mokea as intended — the real Claude Code CLI, used as it allows, on your own subscriptions — is consistent with Claude Code's Terms. See [#107](https://github.com/KarpelesLab/teamclaude/issues/107) for the full write-up.
 
 ## Other providers
 

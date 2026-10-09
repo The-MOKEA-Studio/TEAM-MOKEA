@@ -83,7 +83,7 @@ const RATE_LIMIT_ABSORB_MAX_SECONDS =
 // observed says how long the limit actually lasts. It sits above the 0.6-0.8s
 // the hop already re-asked across and was refused, and far below the backoff the
 // client would otherwise serve out. That is the entire argument for it, which is
-// why it is an env var: TEAMCLAUDE_HEADERLESS_429_RETRY_DELAY_MS.
+// why it is an env var: TEAM_MOKEA_HEADERLESS_429_RETRY_DELAY_MS.
 //
 // One delay, not a ladder: the limit's window is unknown, and a second guess at
 // it would cost the client the wait without evidence that it helps. So the worst
@@ -350,7 +350,7 @@ export function keylessMcpRefusal(headers, remoteAddress, proxyConfig, boundHost
   if (!loopbackExempt(headers, remoteAddress, proxyConfig)) {
     return 'request refused: with no proxy key configured the MCP endpoint serves only this machine; set proxy.apiKey to reach it from elsewhere';
   }
-  // The address actually bound, when the caller knows it (TEAMCLAUDE_HOST can
+  // The address actually bound, when the caller knows it (TEAM_MOKEA_HOST can
   // differ from proxy.host — see createProxyServer's `bindHost`).
   if (!isLocalHostHeader(headers.host ?? headers[':authority'], boundHost || proxyConfig?.host)) {
     return 'request refused: the Host header does not name this proxy';
@@ -383,9 +383,9 @@ function usableClientKeys(clientKeys) {
     for (const entry of clientKeys) {
       const name = typeof entry?.name === 'string' ? entry.name.trim() : '';
       if (!name || !entry?.key) {
-        console.error('[TeamClaude] proxy.clientKeys: an entry without a name and a key is ignored (usage is attributed by name)');
+        console.error('[Team Mokea] proxy.clientKeys: an entry without a name and a key is ignored (usage is attributed by name)');
       } else if (seen.has(name)) {
-        console.error(`[TeamClaude] proxy.clientKeys: duplicate name "${name}" — its keys share one usage counter`);
+        console.error(`[Team Mokea] proxy.clientKeys: duplicate name "${name}" — its keys share one usage counter`);
       }
       seen.add(name);
     }
@@ -410,9 +410,9 @@ export function resolveClientAuth(proxyConfig, presented) {
 // caller holding a client key (rather than the operator's proxy.apiKey) gets.
 // See the check in createProxyServer for why a tenant may not reach these.
 const CLIENT_KEY_REFUSED_PATHS = new Map([
-  ['/teamclaude/threshold', 'a client key cannot change settings'],
-  ['/teamclaude/priority', 'a client key cannot change accounts'],
-  ['/teamclaude/disable', 'a client key cannot change accounts'],
+  ['/team-mokea/threshold', 'a client key cannot change settings'],
+  ['/team-mokea/priority', 'a client key cannot change accounts'],
+  ['/team-mokea/disable', 'a client key cannot change accounts'],
 ]);
 
 /**
@@ -423,7 +423,7 @@ const CLIENT_KEY_REFUSED_PATHS = new Map([
  * @param {any} [clientUsage]
  * @param {any} [dimensionUsage]
  * @param {{ bindHost?: string|null }} [opts]  `bindHost`: the address the caller
- *   binds, when it is not `config.proxy.host` (TEAMCLAUDE_HOST overrides it). The
+ *   binds, when it is not `config.proxy.host` (TEAM_MOKEA_HOST overrides it). The
  *   DNS-rebinding Host check accepts that address as naming this machine; given
  *   only the config value, a server bound off-box through the env var refused a
  *   key-less caller naming the very address it listens on (#423).
@@ -444,27 +444,26 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
     try {
       mkdirSync(logDir, { recursive: true, mode: 0o700 });
     } catch (err) {
-      console.error(`[TeamClaude] Request logging disabled: cannot create logDir ${logDir}: ${err.message}`);
+      console.error(`[Team Mokea] Request logging disabled: cannot create logDir ${logDir}: ${err.message}`);
       logDir = null;
     }
   }
 
   const requestHandler = async (req, res) => {
     try {
-      // The control plane answers to its new name as well (issue #72): a URL
-      // under /teamrouter/ is rewritten to /teamclaude/ once, here, so every
-      // route below keeps matching the one spelling it always has. Only the
+      // Accept control URLs under the previous name and rewrite them to the
+      // current prefix once, here. Only the
       // proxy's own prefix is touched; nothing forwarded upstream starts with it.
       const legacyUrl = legacyControlUrl(req.url);
       if (legacyUrl) req.url = legacyUrl;
 
       // Dashboard page — served BEFORE the auth gate on purpose. The page is a
       // static asset containing no data: everything it shows comes from
-      // /teamclaude/status, which stays behind the gate and is fetched by the
+      // /team-mokea/status, which stays behind the gate and is fetched by the
       // page's own script with the key. A browser address bar cannot send
       // x-api-key, so gating the asset would just 401 every remote browser
       // without protecting anything.
-      if (req.method === 'GET' && req.url === '/teamclaude/dashboard') {
+      if (req.method === 'GET' && req.url === '/team-mokea/dashboard') {
         // The page keeps the proxy key in localStorage; the policy is what
         // stops any script but its own from ever running next to it.
         res.writeHead(200, {
@@ -510,9 +509,9 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
       // forged from page JavaScript, while curl and the CLI send neither — so
       // this costs legitimate callers nothing. Deliberately not a content-type
       // requirement, which would also close the hole but would break the
-      // documented `curl -X POST .../teamclaude/reload` that sends no body.
+      // documented `curl -X POST .../team-mokea/reload` that sends no body.
       const crossOrigin = !isSameOriginControlRequest(req);
-      if (crossOrigin && req.method === 'POST' && (req.url || '').startsWith('/teamclaude/')) {
+      if (crossOrigin && req.method === 'POST' && (req.url || '').startsWith('/team-mokea/')) {
         res.writeHead(403, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           ok: false,
@@ -556,7 +555,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
         // gate above covers its mutations, but the same no-cors trick reaches
         // POST /v1/messages, where the proxy injects a fleet credential (a quota
         // drain, with prompt content booked to the operator), and a GET of
-        // /teamclaude/status is unreadable to the page only for as long as no
+        // /team-mokea/status is unreadable to the page only for as long as no
         // CORS header ever leaks. Same browser-set headers, same zero cost to
         // curl, the CLI and Node clients, which send neither.
         if (crossOrigin) {
@@ -583,7 +582,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
       }
 
       // Status endpoint
-      if (req.method === 'GET' && req.url === '/teamclaude/status') {
+      if (req.method === 'GET' && req.url === '/team-mokea/status') {
         const status = accountManager.getStatus({ sessionDetail: config.proxy?.sessionDetail === true });
         const extra = hooks.getStatusExtra?.() || {};
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -594,9 +593,9 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
       }
 
       // Tier-weighted fleet quota for lightweight consumers such as a shell or
-      // Claude Code status line. Unlike /teamclaude/status this omits routing,
+      // Claude Code status line. Unlike /team-mokea/status this omits routing,
       // usage counters and server diagnostics, and never reaches upstream.
-      if (req.method === 'GET' && req.url === '/teamclaude/quota') {
+      if (req.method === 'GET' && req.url === '/team-mokea/quota') {
         const extra = hooks.getQuotaExtra?.() || {};
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ...accountManager.getQuotaSummary(), ...extra }, null, 2));
@@ -606,7 +605,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
       // Reload endpoint — re-sync accounts from config without a restart. This
       // is the headless equivalent of pressing 'R' in the TUI. Local control
       // only (no upstream calls); the auth gate above already applies.
-      if (req.method === 'POST' && req.url === '/teamclaude/reload') {
+      if (req.method === 'POST' && req.url === '/team-mokea/reload') {
         if (!hooks.reload) {
           res.writeHead(501, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: 'reload not supported' }));
@@ -620,21 +619,21 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
           // The reason belongs in the log, not the reply: a reload failure
           // names config paths and account details, and this endpoint is
           // reachable by anyone holding a client key.
-          console.error('[TeamClaude] Reload failed:', err.message);
+          console.error('[Team Mokea] Reload failed:', err.message);
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: 'reload failed; see the proxy log' }));
         }
         return;
       }
 
-      // Account controls — the web equivalent of `teamclaude priority` and
-      // `teamclaude disable` / `enable`. Local control only (no upstream
+      // Account controls — the web equivalent of `team-mokea priority` and
+      // `team-mokea disable` / `enable`. Local control only (no upstream
       // calls); the auth and cross-origin gates above already apply, and the
       // hook writes through atomicConfigUpdate so a refusal leaves the file
       // untouched. Both answer with the account as it now stands, because a
       // relative move ('first'/'last') picks a number the caller did not send.
-      if (req.method === 'POST' && (req.url === '/teamclaude/priority' || req.url === '/teamclaude/disable')) {
-        const isPriority = req.url === '/teamclaude/priority';
+      if (req.method === 'POST' && (req.url === '/team-mokea/priority' || req.url === '/team-mokea/disable')) {
+        const isPriority = req.url === '/team-mokea/priority';
         const hook = isPriority ? hooks.setAccountPriority : hooks.setAccountDisabled;
         if (!hook) {
           res.writeHead(501, { 'Content-Type': 'application/json' });
@@ -674,7 +673,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
           try {
             await hooks.reload();
           } catch (err) {
-            console.error('[TeamClaude] Reload after an account change failed:', /** @type {Error} */ (err).message);
+            console.error('[Team Mokea] Reload after an account change failed:', /** @type {Error} */ (err).message);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ ok: false, error: 'saved to the config file, but the reload failed; see the proxy log' }));
             return;
@@ -682,7 +681,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
           // Leave a trace where the manual switch already leaves one: on a
           // headless deployment this endpoint is the only way the change
           // happens, and an account leaving rotation should never be silent.
-          console.log(`[TeamClaude] ${isPriority
+          console.log(`[Team Mokea] ${isPriority
             ? `Set priority of "${result.name}" to ${result.priority}`
             : `${result.disabled ? 'Disabled' : 'Enabled'} account "${result.name}"`} (control endpoint)`);
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -692,7 +691,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
           // account, bad priority) and is safe to echo; anything else is ours.
           const known = err instanceof ConfigOpError;
           const message = /** @type {Error} */ (err).message;
-          if (!known) console.error('[TeamClaude] Account control failed:', message);
+          if (!known) console.error('[Team Mokea] Account control failed:', message);
           res.writeHead(known ? 400 : 500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: known ? message : 'account change failed; see the proxy log' }));
         }
@@ -701,7 +700,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
 
       // One-shot quota probe — the web equivalent of the TUI's `p` key. It is
       // zero-spend and only available when the running server has a prober.
-      if (req.method === 'POST' && req.url === '/teamclaude/probe') {
+      if (req.method === 'POST' && req.url === '/team-mokea/probe') {
         if (!hooks.probeQuota) {
           res.writeHead(501, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: 'quota probe not supported' }));
@@ -712,7 +711,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: true }));
         } catch (err) {
-          console.error('[TeamClaude] Quota probe failed:', err.message);
+          console.error('[Team Mokea] Quota probe failed:', err.message);
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: 'quota probe failed; see the proxy log' }));
         }
@@ -728,7 +727,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
       // that it was recorded. Body:
       // {"account": "<name|email|accountUuid|accountUuid/orgUuid|orgUuid>"}.
       // Local control only (no upstream calls); the auth gate above applies.
-      if (req.method === 'POST' && req.url === '/teamclaude/switch') {
+      if (req.method === 'POST' && req.url === '/team-mokea/switch') {
         const names = () => (accountManager.accounts || []).map(a => a.name);
         let target;
         try {
@@ -766,7 +765,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
         // to the activity log, so this one line covers both. Without it a manual
         // switch is the only account change that happens invisibly — on exactly
         // the background-service deployment this endpoint exists for.
-        console.log(`[TeamClaude] Switched to account "${name}" (manual)`
+        console.log(`[Team Mokea] Switched to account "${name}" (manual)`
           + (eligible ? '' : ` — ${reason}, so rotation will not use it`));
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true, account: name, eligible, ...(reason ? { reason } : {}) }));
@@ -774,7 +773,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
       }
 
       // Threshold endpoint — the utilization at which rotation leaves an
-      // account, the web equivalent of `teamclaude threshold <1-100>` and of the
+      // account, the web equivalent of `team-mokea threshold <1-100>` and of the
       // set_threshold MCP tool. Unlike /switch, which only moves currentIndex in
       // the running manager, this is a SETTING: it goes through the config file
       // under its lock and a reload applies it, so it survives a restart and
@@ -784,7 +783,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
       // including the cross-origin refusal — the dashboard's own fetch is
       // same-origin, so it passes while another site's no-cors POST does not —
       // and the client-key refusal, since this is a setting and not a nudge.
-      if (req.method === 'POST' && req.url === '/teamclaude/threshold') {
+      if (req.method === 'POST' && req.url === '/team-mokea/threshold') {
         let percent;
         try {
           const raw = await readControlBody(req);
@@ -823,7 +822,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
           // A ConfigOpError is the caller's input being refused and says so in
           // words meant for them; anything else is ours and goes to the log.
           const bad = err instanceof ConfigOpError;
-          console.error('[TeamClaude] Threshold change failed:', message);
+          console.error('[Team Mokea] Threshold change failed:', message);
           res.writeHead(bad ? 400 : 500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: bad ? message : 'threshold change failed; see the proxy log' }));
           return;
@@ -836,7 +835,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
           await hooks.reload();
         } catch (err) {
           const message = /** @type {Error} */ (err).message;
-          console.error('[TeamClaude] Reload after a threshold change failed:', message);
+          console.error('[Team Mokea] Reload after a threshold change failed:', message);
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: 'saved to the config file, but the reload failed; see the proxy log' }));
           return;
@@ -844,7 +843,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
         // The same trace a manual switch leaves, and for the same reason: on the
         // background-service deployment this endpoint exists for, a threshold
         // that quietly retires an account would otherwise change nothing visible.
-        console.log(`[TeamClaude] Switch threshold set to ${Math.round(saved * 1000) / 10}% (dashboard)`
+        console.log(`[Team Mokea] Switch threshold set to ${Math.round(saved * 1000) / 10}% (dashboard)`
           + (dropped.length ? ` — dropped the per-bucket thresholds (${dropped.join(', ')})` : ''));
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true, switchThreshold: saved, dropped }));
@@ -853,14 +852,14 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
 
       // MCP management endpoint — the tool-shaped face of this control plane,
       // off unless proxy.mcp says otherwise. The gates above are the same ones
-      // the other /teamclaude/ routes pass, with one addition: a config with no
+      // the other /team-mokea/ routes pass, with one addition: a config with no
       // key at all admits every caller as authenticated, from any address and
       // without the rebinding check on key-less loopback requests — so
       // keylessMcpRefusal asks both here.
       // A trailing slash and a query string are matched too: this URL is typed
       // into a client by hand, and a near miss would fall through to the
       // forwarder below with a fleet credential attached.
-      if (/^\/teamclaude\/mcp\/?(\?|$)/.test(req.url || '')) {
+      if (/^\/team-mokea\/mcp\/?(\?|$)/.test(req.url || '')) {
         const refusal = keylessMcpRefusal(req.headers, req.socket.remoteAddress, config.proxy, boundHost());
         if (refusal) {
           res.writeHead(403, { 'Content-Type': 'application/json' });
@@ -872,25 +871,25 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
       }
 
       // Every control route above matches an exact method and path, so a typo —
-      // or just the wrong verb, `GET /teamclaude/reload` — fell through to the
+      // or just the wrong verb, `GET /team-mokea/reload` — fell through to the
       // forwarder: the request went upstream under a fleet account's credential
       // and the client got THAT server's 404 (#420). The prefix is ours, so
       // whatever under it no route claimed is answered here. Read on the
       // classification path like every other prefix test; `/tc-acct/` and an
       // absolute-form proxy URL do not start with it and are untouched.
       const controlPath = classificationPath(req.url);
-      // Both prefixes: an encoded spelling of the new one (`/%74eamrouter/`)
-      // escapes the rewrite above and must not reach the forwarder either.
-      if (controlPath === '/teamclaude' || controlPath.startsWith('/teamclaude/')
-        || controlPath === '/teamrouter' || controlPath.startsWith('/teamrouter/')) {
+      // Both prefixes: an encoded spelling of either name escapes the rewrite
+      // above and must not reach the forwarder either.
+      if (controlPath === '/team-mokea' || controlPath.startsWith('/team-mokea/')
+        || controlPath === '/teamclaude' || controlPath.startsWith('/teamclaude/')) {
         res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'unknown teamclaude control route (check the path and the method)' }));
+        res.end(JSON.stringify({ error: 'unknown team-mokea control route (check the path and the method)' }));
         return;
       }
 
       return forward(req, res);
     } catch (err) {
-      reportFailure('[TeamClaude] Unhandled error:', err);
+      reportFailure('[Team Mokea] Unhandled error:', err);
       // The window above throws for real: `getStatusExtra` is a hook the
       // application installs, and reload/switch reach the account manager.
       answerUnhandled(res);
@@ -923,7 +922,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
       const hours = resolveLogRetentionHours(config);
       return sweepRequestLogs(logDir, hours)
         .then((n) => {
-          if (n) console.log(`[TeamClaude] Removed ${n} expired request log(s) from ${logDir} (logRetentionHours=${hours}, set 0 to keep them)`);
+          if (n) console.log(`[Team Mokea] Removed ${n} expired request log(s) from ${logDir} (logRetentionHours=${hours}, set 0 to keep them)`);
         })
         .catch(() => {});
     };
@@ -973,7 +972,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
         // line, so the 401 alone leaves an operator with a channel that is
         // silently dead — the same shape as the outage this gate could cause if
         // a client turns out not to send the key.
-        console.log(`[TeamClaude] WebSocket upgrade refused (no proxy key) from ${safeLine(/** @type {import('node:net').Socket} */ (socket)?.remoteAddress || 'unknown')} for ${safeLine(req.url)}`);
+        console.log(`[Team Mokea] WebSocket upgrade refused (no proxy key) from ${safeLine(/** @type {import('node:net').Socket} */ (socket)?.remoteAddress || 'unknown')} for ${safeLine(req.url)}`);
         try { socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n'); } catch { /* already gone */ }
         socket.destroy();
         return;
@@ -984,7 +983,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
       // under `clients` at all (#325).
       relayUpgrade(req, socket, head, upstream, sx, { client: auth.client, clientUsage, stripOverage: shouldStripOverageHeaders(config) });
     } catch (err) {
-      console.error(`[TeamClaude] WebSocket upgrade handler failed for ${safeLine(req?.url)}: ${err?.message || err}`);
+      console.error(`[Team Mokea] WebSocket upgrade handler failed for ${safeLine(req?.url)}: ${err?.message || err}`);
       try { socket.write('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n'); } catch { /* already gone */ }
       socket.destroy();
     }
@@ -1011,7 +1010,7 @@ export function createProxyServer(accountManager, config, hooks = {}, sx = null,
  * and is refused — deliberately: widening the fallback to guess our own host
  * is the trade this comment declines.
  *
- * Non-browser callers (curl, the CLI, `teamclaude attach`) send neither and are
+ * Non-browser callers (curl, the CLI, `team-mokea attach`) send neither and are
  * unaffected.
  */
 export function isSameOriginControlRequest(req) {
@@ -1128,7 +1127,7 @@ export function resolveAccountPin(accountManager, token) {
  * `.errors`. Any multi-address host reaches this, and the upstream is one, so
  * `err.message` prints nothing for the failure operators most need to read.
  *
- * Looked for one level down as well, because `TEAMCLAUDE_UPSTREAM_GLOBAL_FETCH`
+ * Looked for one level down as well, because `TEAM_MOKEA_UPSTREAM_GLOBAL_FETCH`
  * routes through global fetch, which wraps the same failure in a TypeError whose
  * own message is the equally unhelpful "fetch failed".
  *
@@ -1147,7 +1146,7 @@ export function describeConnectError(err) {
 
 // Paths that must reach upstream with the client's own credential (never a
 // rotated account token): the Remote Control channel and attachment transfers.
-// teamclaude applies its account logic (rotation, exhaustion, token injection)
+// team-mokea applies its account logic (rotation, exhaustion, token injection)
 // ONLY to hosts it manages — the Anthropic upstream. Anything else must be
 // forwarded transparently, never hijacked into "all accounts exhausted". For
 // HTTPS this is already true (the CONNECT tunnel in mitm.js blind-relays
@@ -1166,7 +1165,7 @@ export function relayHttpForward(req, res, stripOverage = false) {
   }
   // Destination policy, same as the CONNECT tunnel's (forward-target.js): a
   // relay may not target this machine's loopback, the unspecified address, or
-  // link-local. `GET http://127.0.0.1:<our port>/teamclaude/status` would
+  // link-local. `GET http://127.0.0.1:<our port>/team-mokea/status` would
   // otherwise arrive at our own listener from a loopback socket and pass the
   // API-key gate as a local caller. Refused by literal name here; the guarded
   // lookup below refuses by resolved address, so a DNS alias for 127.0.0.1 does
@@ -1174,7 +1173,7 @@ export function relayHttpForward(req, res, stripOverage = false) {
   // legitimate request is lost.
   const hostname = target.hostname.replace(/^\[|\]$/g, '');
   const refuse = (why) => {
-    console.error(`[TeamClaude] HTTP forward to ${target.host} refused: ${why}`);
+    console.error(`[Team Mokea] HTTP forward to ${target.host} refused: ${why}`);
     if (res.headersSent) { res.destroy(); return; }
     res.writeHead(403, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ type: 'error', error: { type: 'permission_error', message: `Forward to ${target.host} refused: ${why}` } }));
@@ -1204,7 +1203,7 @@ export function relayHttpForward(req, res, stripOverage = false) {
   });
   upstreamReq.on('error', (/** @type {CodedError} */ err) => {
     if (err.code === FORBIDDEN_FORWARD) { refuse(err.message); return; }
-    console.error(`[TeamClaude] HTTP forward to ${target.host} failed:`, describeConnectError(err));
+    console.error(`[Team Mokea] HTTP forward to ${target.host} failed:`, describeConnectError(err));
     if (!res.headersSent) {
       res.writeHead(502, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ type: 'error', error: { type: 'proxy_error', message: 'Upstream unreachable' } }));
@@ -1593,7 +1592,7 @@ export function createProxyRequestListener({ accountManager, upstream, logDir = 
       if (blockedBy) {
         if (!res.headersSent) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ type: 'error', error: { type: 'invalid_request_error', message: `Model "${model}" is blocked by teamclaude (matched "${blockedBy}").` } }));
+          res.end(JSON.stringify({ type: 'error', error: { type: 'invalid_request_error', message: `Model "${model}" is blocked by team-mokea (matched "${blockedBy}").` } }));
         }
         recordEarlyOutcome(accountManager, { pinKey }, req.url, true);
         openEntry = null;   // this path owns the close below; the outer catch must not repeat it
@@ -1659,7 +1658,7 @@ export function createProxyRequestListener({ accountManager, upstream, logDir = 
         // through a console that may be the thing that failed. Here it also
         // decides which error gets reported at all, since a throw from the
         // report would carry the render failure outward in place of this one.
-        reportFailure('[TeamClaude] Unhandled error:', err);
+        reportFailure('[Team Mokea] Unhandled error:', err);
         if (!res.headersSent) {
           res.writeHead(502, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ type: 'error', error: { type: 'proxy_error', message: 'Internal proxy error' } }));
@@ -1684,7 +1683,7 @@ export function createProxyRequestListener({ accountManager, upstream, logDir = 
         if (!hideActivity) hooks.onRequestEnd?.(reqId, { method: req.method, path: req.url, account: ctx.account, status: ctx.status, model: ctx.model, sessionId, pinned: ctx.pinnedIndex != null, client });
       }
     } catch (err) {
-      reportFailure('[TeamClaude] Unhandled error:', err);
+      reportFailure('[Team Mokea] Unhandled error:', err);
       // Close the activity entry. Only the inner path has a `finally`, so a
       // throw above it opens a row that nothing else will ever close, and every
       // consumer holds an open row indefinitely: the TUI keeps it in `active`
@@ -1710,7 +1709,7 @@ export function createProxyRequestListener({ accountManager, upstream, logDir = 
             model: null, sessionId: entry.sessionId, pinned: false,
           });
         } catch (hookErr) {
-          reportFailure('[TeamClaude] activity hook failed while closing a request:', hookErr);
+          reportFailure('[Team Mokea] activity hook failed while closing a request:', hookErr);
         }
       }
       // The code above the inner try (the egress hold, the pin parsing, body
@@ -1828,7 +1827,7 @@ function recordEarlyOutcome(accountManager, { pinKey = null, sessionId = null },
 // this, and the catch recognises it by code.
 function clientGoneError() {
   const err = /** @type {CodedError} */ (new Error('client disconnected'));
-  err.code = 'TEAMCLAUDE_CLIENT_GONE';
+  err.code = 'TEAM_MOKEA_CLIENT_GONE';
   return err;
 }
 
@@ -1929,7 +1928,7 @@ function relayStream(req, res, upstream, sx, stripOverage = false) {
   });
 
   upstreamReq.on('error', (err) => {
-    console.error('[TeamClaude] Remote Control relay error:', describeConnectError(err));
+    console.error('[Team Mokea] Remote Control relay error:', describeConnectError(err));
     if (!res.headersSent) {
       res.writeHead(502, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ type: 'error', error: { type: 'proxy_error', message: 'Upstream unreachable' } }));
@@ -2034,7 +2033,7 @@ export function upgradeTarget(upstream, url) {
 export function relayUpgrade(req, socket, head, upstream, sx, { client = null, clientUsage = null, log = console.log, stripOverage = false } = {}) {
   const target = upgradeTarget(upstream, req.url);
   if (!target) {
-    log(`[TeamClaude] WebSocket upgrade refused: request target ${JSON.stringify(safeLine(req.url, 128))} is not a path on the upstream`);
+    log(`[Team Mokea] WebSocket upgrade refused: request target ${JSON.stringify(safeLine(req.url, 128))} is not a path on the upstream`);
     try { socket.write('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n'); } catch { /* already gone */ }
     socket.destroy();
     return;
@@ -2079,8 +2078,8 @@ export function relayUpgrade(req, socket, head, upstream, sx, { client = null, c
     upstreamSocket.pipe(socket);
     clientUsage?.record(client, { connections: 1 });
     const opened = Date.now();
-    log(`[TeamClaude] ${tag}WebSocket ${path} connected`);
-    socket.once('close', () => log(`[TeamClaude] ${tag}WebSocket ${path} closed (${((Date.now() - opened) / 1000).toFixed(1)}s)`));
+    log(`[Team Mokea] ${tag}WebSocket ${path} connected`);
+    socket.once('close', () => log(`[Team Mokea] ${tag}WebSocket ${path} closed (${((Date.now() - opened) / 1000).toFixed(1)}s)`));
     // An upgraded socket defaults to half-open: the peer's FIN only ends the
     // READABLE side ('end'), it does NOT destroy the socket or fire 'close' —
     // so without this, one side hanging up (dropped wifi, killed CLI) leaves
@@ -2103,7 +2102,7 @@ export function relayUpgrade(req, socket, head, upstream, sx, { client = null, c
   // client socket hung with no answer until it timed out, and nothing was
   // logged. Relay the status so the client sees the refusal it was given.
   upstreamReq.on('response', (upstreamRes) => {
-    log(`[TeamClaude] ${tag}WebSocket ${path} refused by upstream (${upstreamRes.statusCode})`);
+    log(`[Team Mokea] ${tag}WebSocket ${path} refused by upstream (${upstreamRes.statusCode})`);
     const headerLines = Object.entries(upstreamRes.headers)
       .filter(([k]) => !CONNECTION_SPECIFIC_HEADERS.has(k.toLowerCase()) && k.toLowerCase() !== 'content-length')
       .filter(([k]) => !(stripOverage && isOverageHeader(k)))
@@ -2116,7 +2115,7 @@ export function relayUpgrade(req, socket, head, upstream, sx, { client = null, c
   });
 
   upstreamReq.on('error', (err) => {
-    console.error('[TeamClaude] Remote Control WebSocket relay error:', describeConnectError(err));
+    console.error('[Team Mokea] Remote Control WebSocket relay error:', describeConnectError(err));
     socket.destroy();
   });
   socket.on('error', () => upstreamReq.destroy());
@@ -2194,7 +2193,7 @@ async function relayRaw(req, res, upstream, sx, maxBodyBytes = DEFAULT_MAX_BODY_
     res.writeHead(upstreamRes.status, responseHeaders);
     res.end(responseBody);
   } catch (err) {
-    console.error('[TeamClaude] Raw relay error:', describeConnectError(err));
+    console.error('[Team Mokea] Raw relay error:', describeConnectError(err));
     if (!res.headersSent) {
       res.writeHead(502, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ type: 'error', error: { type: 'proxy_error', message: 'Upstream unreachable' } }));
@@ -2349,7 +2348,7 @@ function openRequestLog(logDir, _reqId, { level = DEFAULT_LOG_LEVEL, maxBodyByte
   const fail = (err) => {
     if (failed) return;
     failed = true;
-    console.error(`[TeamClaude] Request log ${filename} abandoned: ${err.message}`);
+    console.error(`[Team Mokea] Request log ${filename} abandoned: ${err.message}`);
   };
   ws.on('error', fail);
   const write = (s) => {
@@ -2438,7 +2437,7 @@ function formatHeaders(headers) {
 const SOCKET_TRANSIENT = new Set([
   'ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EPIPE',
   'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_BODY_TIMEOUT',
-  'TEAMCLAUDE_HEADERS_TIMEOUT', 'TEAMCLAUDE_BODY_TIMEOUT',
+  'TEAM_MOKEA_HEADERS_TIMEOUT', 'TEAM_MOKEA_BODY_TIMEOUT',
 ]);
 
 // Failures that are a property of the HOST being dialled: name resolution and
@@ -2489,7 +2488,7 @@ export function isTransientUpstreamError(err, { otherHostAvailable = false } = {
   if (codes.some(c => SOCKET_TRANSIENT.has(c))) return true;
   if (codes.some(c => HOST_TRANSIENT.has(c))) return !otherHostAvailable;
   // Read last, and only once no code has been found. Node's global fetch, which
-  // `TEAMCLAUDE_UPSTREAM_GLOBAL_FETCH` selects, reports every failure with this
+  // `TEAM_MOKEA_UPSTREAM_GLOBAL_FETCH` selects, reports every failure with this
   // message and the real error on `.cause`; checking it earlier would answer for
   // the whole transport before the codes above were consulted, so a host-scoped
   // failure there would never reach its conditional arm.
@@ -2598,7 +2597,7 @@ const EXHAUSTED_MESSAGE_MAX_NAMES = 3;
  * token — and the proxy rightly skips both, yet the client read "all 2 accounts
  * are at their quota or rate limit". The TUI went on showing the errored
  * account's quota bars with room in them, so the operator waited out a reset
- * that was never going to help, when the fix was `teamclaude login`.
+ * that was never going to help, when the fix was `team-mokea login`.
  *
  * Blockers are told apart by the next step they call for, and there are three:
  * log in again, fix the account's routing proxy, or wait. A dead credential is read off `status === 'error'`
@@ -2630,7 +2629,7 @@ export function exhaustedMessage(candidates, model, retryAfter) {
   // is the wrong advice and "all 0 accounts are at their quota" is the wrong
   // sentence: either the operator disabled the ones that qualify, or none
   // qualifies at all — a route's account list crossed with the provider
-  // partition, which leaves a route that looks healthy in `teamclaude status`
+  // partition, which leaves a route that looks healthy in `team-mokea status`
   // and can serve nothing.
   if (!eligible.length) {
     return disabled
@@ -2660,9 +2659,9 @@ export function exhaustedMessage(candidates, model, retryAfter) {
     return `${list.length === 1 ? 'account' : 'accounts'} ${shown}${unnamed ? ` and ${unnamed} more` : ''}`;
   };
   const blockers = [];
-  if (dead.length) blockers.push(`${named(dead)} ${dead.length === 1 ? 'needs' : 'need'} re-login (run: teamclaude login)`);
+  if (dead.length) blockers.push(`${named(dead)} ${dead.length === 1 ? 'needs' : 'need'} re-login (run: team-mokea login)`);
   if (unreachable.length) {
-    blockers.push(`${named(unreachable)} cannot reach ${unreachable.length === 1 ? 'its' : 'their'} routing proxy (see: teamclaude routing <name>)`);
+    blockers.push(`${named(unreachable)} cannot reach ${unreachable.length === 1 ? 'its' : 'their'} routing proxy (see: team-mokea routing <name>)`);
   }
 
   // Every account that could take this request is blocked by something a wait
@@ -2722,8 +2721,8 @@ const DEFAULT_STREAM_PEEK_HOLD_MS = 10_000;
 
 /**
  * The peek's two bounds. Read per call like the body idle timeout, so a test
- * can shrink them through TEAMCLAUDE_STREAM_PEEK_BUDGET_BYTES and
- * TEAMCLAUDE_STREAM_PEEK_HOLD_MS without reloading the module. Unset, empty or
+ * can shrink them through TEAM_MOKEA_STREAM_PEEK_BUDGET_BYTES and
+ * TEAM_MOKEA_STREAM_PEEK_HOLD_MS without reloading the module. Unset, empty or
  * non-positive means the default.
  * @returns {{ budgetBytes: number, holdMs: number }}
  */
@@ -2969,9 +2968,9 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
       if (allEntitlementDenied && ctx.pinnedIndex != null) {
         message = `No account served this request. The pinned account ${names} returned OAuth entitlement denial (${OAUTH_ENTITLEMENT_ERROR_CODE}). An explicit pin targets that account exactly; choose a different eligible account or change its organization's OAuth policy.`;
       } else if (allEntitlementDenied) {
-        message = `No account served this request. Every configured account returned OAuth entitlement denial (${OAUTH_ENTITLEMENT_ERROR_CODE}): ${names}. TeamClaude temporarily removed them from automatic rotation; retry after the cooldown or pin a different eligible account.`;
+        message = `No account served this request. Every configured account returned OAuth entitlement denial (${OAUTH_ENTITLEMENT_ERROR_CODE}): ${names}. Team Mokea temporarily removed them from automatic rotation; retry after the cooldown or pin a different eligible account.`;
       } else {
-        message = `Upstream refused the credential for account ${names} (403). Check the account, then re-add it with: teamclaude login`;
+        message = `Upstream refused the credential for account ${names} (403). Check the account, then re-add it with: team-mokea login`;
       }
       ctx.status = 502;
       ctx.account = `(${[...rejected].join(', ')} refused)`;
@@ -3054,7 +3053,7 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
       // minute instead of sleeping the full retryAfter (often 3600s).
       const waitMs = Math.min(retryAfter * 1000, ctx.holdBudgetMs, 60_000);
       ctx.holdBudgetMs -= waitMs;
-      console.log(`[TeamClaude] All accounts exhausted — holding connection, retry in ${Math.ceil(waitMs / 1000)}s (${Math.ceil(ctx.holdBudgetMs / 1000)}s budget left)`);
+      console.log(`[Team Mokea] All accounts exhausted — holding connection, retry in ${Math.ceil(waitMs / 1000)}s (${Math.ceil(ctx.holdBudgetMs / 1000)}s budget left)`);
       await waitForRetry(waitMs, ctx.signal);
       if (clientGone(res)) { ctx.abandoned = true; return; }
       return forwardRequest(req, res, body, accountManager, upstream, retryCount, hooks, reqId, ctx, logDir, sx, route);
@@ -3063,7 +3062,7 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
     const exhaustedRetries = ctx.exhaustedRetries || 0;
     if (exhaustedRetries < 1 && retryAfter <= INLINE_RETRY_AFTER_MAX_SECONDS) {
       ctx.exhaustedRetries = exhaustedRetries + 1;
-      console.log(`[TeamClaude] All accounts exhausted — waiting ${retryAfter}s before retry`);
+      console.log(`[Team Mokea] All accounts exhausted — waiting ${retryAfter}s before retry`);
       await waitForRetry(retryAfter * 1000, ctx.signal);
       if (clientGone(res)) { ctx.abandoned = true; return; }
       return forwardRequest(req, res, body, accountManager, upstream, retryCount, hooks, reqId, ctx, logDir, sx, route);
@@ -3153,7 +3152,7 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
     // reports on (see syncAccountsFromDisk).
     if (!account.threadRefusalReported) {
       account.threadRefusalReported = true;
-      console.error(`[TeamClaude] ${safeLine(account.name, 64)}: refusing message-thread continues (this upstream keeps no thread state; set "messageThreads": true ${account.upstream ? 'on the account' : 'at the top level of the config'} if it does)`);
+      console.error(`[Team Mokea] ${safeLine(account.name, 64)}: refusing message-thread continues (this upstream keeps no thread state; set "messageThreads": true ${account.upstream ? 'on the account' : 'at the top level of the config'} if it does)`);
     }
     res.writeHead(400, { 'Content-Type': 'application/json', 'x-should-retry': 'false' });
     res.end(JSON.stringify({
@@ -3342,13 +3341,13 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
         // selection skip it for Fable requests only. A general rejection spends a
         // shared bucket, so hold the whole account for its reset window.
         if (fableRejected) {
-          console.log(`[TeamClaude] Fable weekly exhausted on "${account.name}" — switching account for this Fable request`);
+          console.log(`[Team Mokea] Fable weekly exhausted on "${account.name}" — switching account for this Fable request`);
         } else if (codexFamilyRejected) {
           // The same shape as the Fable case: this request moves to another
           // account and the account itself is left alone. Unlike Fable, selection
           // does not yet skip the account for this model family afterwards, so a
           // later request for it pays one refusal here before it rotates.
-          console.log(`[TeamClaude] ${safeLine(spentCodexWindows.join(', '), 80)} spent on "${account.name}" — switching account for this request`);
+          console.log(`[Team Mokea] ${safeLine(spentCodexWindows.join(', '), 80)} spent on "${account.name}" — switching account for this request`);
         } else {
           const hold = Math.min(Math.max(retryAfter, 1), 3600);
           // Name the spent window when the headers said which: "which one" is
@@ -3357,7 +3356,7 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
           // label carries upstream's own text, so it goes through safeLine.
           const spent = spentCodexWindows.length
             ? ` (${safeLine(spentCodexWindows.join(', '), 80)} spent)` : '';
-          console.log(`[TeamClaude] Quota rejection (429) on "${account.name}"${spent} — throttling ${hold}s and switching account`);
+          console.log(`[Team Mokea] Quota rejection (429) on "${account.name}"${spent} — throttling ${hold}s and switching account`);
           accountManager.markRateLimited(account.index, hold);
         }
         ctx.tried.add(account.index);
@@ -3443,7 +3442,7 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
           ctx.rateLimitHopSharedExit = !routed && !alt.routing;
           ctx.hopTo = alt.index;
           ctx.tried.add(account.index);
-          console.log(`[TeamClaude] Rate-limit 429 on "${account.name}" — failing over once to idle account "${alt.name}"`);
+          console.log(`[Team Mokea] Rate-limit 429 on "${account.name}" — failing over once to idle account "${alt.name}"`);
           if (clientGone(res)) { ctx.abandoned = true; return; }
           return forwardRequest(req, res, body, accountManager, upstream, retryCount + 1, hooks, reqId, ctx, logDir, sx, route);
         }
@@ -3477,39 +3476,39 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
         // Every provider gets it. The wait is one delay of a couple of seconds,
         // once per request and inside the retry budget — far shorter than the
         // inline absorb and the exhaustion hold, which hold every caller alike.
-        // A delay of 0 (TEAMCLAUDE_HEADERLESS_429_RETRY_DELAY_MS=0) turns the
+        // A delay of 0 (TEAM_MOKEA_HEADERLESS_429_RETRY_DELAY_MS=0) turns the
         // retry off and the 429 goes back at once.
         const retryDelayMs = resolveHeaderless429RetryDelayMs();
         if (retryDelayMs > 0 && !ctx.requestScopedRetried && !switchingToSx && retryCount < maxRetries
           && !res.headersSent && !clientGone(res) && !ctx.signal?.aborted) {
           // Once per request: a retry that is refused too has made the point.
           ctx.requestScopedRetried = true;
-          console.log(`[TeamClaude] 429 followed the request onto "${account.name}" with no rate-limit headers — retrying it once on the same account in ${retryDelayMs}ms`
+          console.log(`[Team Mokea] 429 followed the request onto "${account.name}" with no rate-limit headers — retrying it once on the same account in ${retryDelayMs}ms`
             + (refusal ? ` (${safeLine(refusal)})` : ''));
           await waitForRetry(retryDelayMs, ctx.signal);
           if (clientGone(res)) { ctx.abandoned = true; return; }
           ctx.hopTo = account.index;
           return forwardRequest(req, res, body, accountManager, upstream, retryCount + 1, hooks, reqId, ctx, logDir, sx, route);
         }
-        console.log(`[TeamClaude] 429 followed the request onto "${account.name}" with no rate-limit headers — it is about the request, not the accounts; returning it to the client`
+        console.log(`[Team Mokea] 429 followed the request onto "${account.name}" with no rate-limit headers — it is about the request, not the accounts; returning it to the client`
           + (refusal ? ` (${safeLine(refusal)})` : ''));
       } else if (ctx.rateLimitHopped) {
         // Second 429 this request, on a different account. Say so once: the
         // operator chasing "why is my fleet throttled" is looking for exactly
         // this, and it points at the egress IP rather than at the accounts.
         console.log(ctx.rateLimitHopSharedExit
-          ? '[TeamClaude] Second account rate-limited too — the limit looks IP-scoped, not per-account'
+          ? '[Team Mokea] Second account rate-limited too — the limit looks IP-scoped, not per-account'
             + (sx?.useOn429() ? '' : ' (sx.org mode "429" would retry from a fresh egress IP)')
           // Per-account routing gave the two different exits, so one address
           // being limited is the one thing this cannot be.
-          : '[TeamClaude] Second account rate-limited too. They leave through different exits (per-account routing), so this is not one IP-scoped limit');
+          : '[Team Mokea] Second account rate-limited too. They leave through different exits (per-account routing), so this is not one IP-scoped limit');
       }
 
       // sx fresh-IP retry (still the same account) takes precedence over waiting.
       // Bounded by retryCount like the inline-wait path below, so a persistently
       // 429ing upstream can't loop forever through sx.
       if (switchingToSx && retryCount < maxRetries) {
-        console.log(`[TeamClaude] 429 on "${account.name}" — retrying via sx.org (fresh egress IP)`);
+        console.log(`[Team Mokea] 429 on "${account.name}" — retrying via sx.org (fresh egress IP)`);
         if (clientGone(res)) { ctx.abandoned = true; return; }
         return forwardRequest(req, res, body, accountManager, upstream, retryCount + 1, hooks, reqId, ctx, logDir, sx, nextUseSx);
       }
@@ -3527,7 +3526,7 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
         const retryDelayMs = resolveHeaderless429RetryDelayMs();
         if (retryDelayMs > 0 && !ctx.rateLimitHopped && !ctx.requestScopedRetried && retryCount < maxRetries) {
           ctx.requestScopedRetried = true;
-          console.log(`[TeamClaude] 429 with no rate-limit headers on "${account.name}" — retrying once in ${retryDelayMs}ms${refusal ? ` (${safeLine(refusal)})` : ''}`);
+          console.log(`[Team Mokea] 429 with no rate-limit headers on "${account.name}" — retrying once in ${retryDelayMs}ms${refusal ? ` (${safeLine(refusal)})` : ''}`);
           await waitForRetry(retryDelayMs, ctx.signal);
           if (clientGone(res)) { ctx.abandoned = true; return; }
           return forwardRequest(req, res, body, accountManager, upstream, retryCount + 1, hooks, reqId, ctx, logDir, sx, nextUseSx);
@@ -3546,7 +3545,7 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
       // 429. Bounded by retryCount (maxRetries = account count) so a persistently
       // rate-limited account can't loop forever tying up the connection.
       if (retryAfter <= RATE_LIMIT_ABSORB_MAX_SECONDS && retryCount < maxRetries) {
-        console.log(`[TeamClaude] Rate-limit 429 on "${account.name}" — waiting ${retryAfter}s, retrying same account (no switch)`);
+        console.log(`[Team Mokea] Rate-limit 429 on "${account.name}" — waiting ${retryAfter}s, retrying same account (no switch)`);
         await waitForRetry(retryAfter * 1000, ctx.signal);
         if (clientGone(res)) { ctx.abandoned = true; return; }
         return forwardRequest(req, res, body, accountManager, upstream, retryCount + 1, hooks, reqId, ctx, logDir, sx, nextUseSx);
@@ -3555,7 +3554,7 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
       // Longer retry-after (or retries exhausted): don't hold the connection and
       // don't rotate — surface the 429 with retry-after so the client backs off.
       // The pause above keeps other requests off this account meanwhile.
-      console.log(`[TeamClaude] Rate-limit 429 on "${account.name}" — retry-after ${retryAfter}s over inline cap; returning 429 to client (no switch)`);
+      console.log(`[Team Mokea] Rate-limit 429 on "${account.name}" — retry-after ${retryAfter}s over inline cap; returning 429 to client (no switch)`);
       ctx.status = 429;
       if (!res.headersSent && !clientGone(res)) {
         res.writeHead(429, { 'Content-Type': 'application/json', 'retry-after': String(retryAfter) });
@@ -3598,7 +3597,7 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
         ctx.serverErrorHopped = true;
         ctx.hopTo = alt.index;
         ctx.tried.add(account.index);
-        console.log(`[TeamClaude] Upstream ${upstreamRes.status} on "${account.name}" — failing over once to "${alt.name}"`);
+        console.log(`[Team Mokea] Upstream ${upstreamRes.status} on "${account.name}" — failing over once to "${alt.name}"`);
         if (clientGone(res)) { ctx.abandoned = true; return; }
         return forwardRequest(req, res, body, accountManager, upstream, retryCount + 1, hooks, reqId, ctx, logDir, sx, route);
       }
@@ -3628,7 +3627,7 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
       const cooldown = deniedUntil
         ? `; OAuth entitlement cooldown until ${new Date(deniedUntil).toISOString()}`
         : '';
-      console.error(`[TeamClaude] 403 on "${account.name}"; upstream refused the account credential${cooldown}`);
+      console.error(`[Team Mokea] 403 on "${account.name}"; upstream refused the account credential${cooldown}`);
       return forwardRequest(req, res, body, accountManager, upstream, retryCount + 1, hooks, reqId, ctx, logDir, sx, route);
     }
 
@@ -3636,7 +3635,7 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
         && retryCount < maxRetries && !ctx.reauthed.has(account.index)) {
       ctx.reauthed.add(account.index);
       await upstreamRes.body?.cancel();
-      console.log(`[TeamClaude] 401 on "${account.name}" — token rejected; forcing refresh and retrying`);
+      console.log(`[Team Mokea] 401 on "${account.name}" — token rejected; forcing refresh and retrying`);
       await accountManager.ensureTokenFresh(account.index, true);
       if (clientGone(res)) { ctx.abandoned = true; return; }
       return forwardRequest(req, res, body, accountManager, upstream, retryCount + 1, hooks, reqId, ctx, logDir, sx, route);
@@ -3668,7 +3667,7 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
       }
       (ctx.credentialRejected ??= new Set()).add(account.name);
       ctx.tried.add(account.index);
-      console.error(`[TeamClaude] 401 on "${safeLine(account.name, 64)}"; failing over to another account`);
+      console.error(`[Team Mokea] 401 on "${safeLine(account.name, 64)}"; failing over to another account`);
       if (clientGone(res)) { ctx.abandoned = true; return; }
       return forwardRequest(req, res, body, accountManager, upstream, retryCount + 1, hooks, reqId, ctx, logDir, sx, route);
     }
@@ -3711,7 +3710,7 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
           ctx.streamFailureHopped = true;
           ctx.hopTo = alt.index;
           ctx.tried.add(account.index);
-          console.log(`[TeamClaude] Stream failed inside a ${upstreamRes.status} on "${account.name}" (${peeked.failureCode}) — failing over once to "${alt.name}"`);
+          console.log(`[Team Mokea] Stream failed inside a ${upstreamRes.status} on "${account.name}" (${peeked.failureCode}) — failing over once to "${alt.name}"`);
           if (clientGone(res)) { ctx.abandoned = true; return; }
           return forwardRequest(req, res, body, accountManager, upstream, retryCount + 1, hooks, reqId, ctx, logDir, sx, route);
         }
@@ -3805,21 +3804,21 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
     // away. Both still go through the log block below, so the request-log
     // file is closed on every exit from this catch — they are only classified
     // after it.
-    const clientLeft = err?.code === 'TEAMCLAUDE_CLIENT_GONE';
-    const overloaded = err?.code === 'TEAMCLAUDE_UPSTREAM_OVERLOADED';
+    const clientLeft = err?.code === 'TEAM_MOKEA_CLIENT_GONE';
+    const overloaded = err?.code === 'TEAM_MOKEA_UPSTREAM_OVERLOADED';
     // The account's own routing proxy, not the upstream: hold the account out
     // of rotation briefly so the requests behind this one do not each pay the
     // same connect failure, and fail this one over below (isTransientUpstreamError).
     const routingFailed = isRoutingFailure(err);
-    if (clientLeft) console.log(`[TeamClaude] Client disconnected while waiting on "${account.name}" — upstream request cancelled`);
-    else if (overloaded) console.error(`[TeamClaude] Upstream admission queue full (${describeConnectError(err)}) — 503 to the client, no account rotation`);
+    if (clientLeft) console.log(`[Team Mokea] Client disconnected while waiting on "${account.name}" — upstream request cancelled`);
+    else if (overloaded) console.error(`[Team Mokea] Upstream admission queue full (${describeConnectError(err)}) — 503 to the client, no account rotation`);
     else if (routingFailed) {
       const until = accountManager.markRoutingFailed(account.index);
       const hold = until ? `; out of rotation for ${Math.max(1, Math.round((until - Date.now()) / 1000))}s` : '';
       // err.message, not describeConnectError: that prefers the cause, which
       // is the bare socket error and does not say a routing proxy was involved.
-      console.error(`[TeamClaude] Routing proxy failed for account "${safeLine(account.name, 64)}" (${describeRouting(account.routing) || 'routing'}): ${safeLine(err instanceof Error ? err.message : String(err), 300)}${hold}`);
-    } else console.error(`[TeamClaude] Upstream error (account "${account.name}"):`, describeConnectError(err));
+      console.error(`[Team Mokea] Routing proxy failed for account "${safeLine(account.name, 64)}" (${describeRouting(account.routing) || 'routing'}): ${safeLine(err instanceof Error ? err.message : String(err), 300)}${hold}`);
+    } else console.error(`[Team Mokea] Upstream error (account "${account.name}"):`, describeConnectError(err));
 
     logRequestHead();
     const l = getLog();
@@ -3936,7 +3935,7 @@ export async function forwardRequest(req, res, body, accountManager, upstream, r
 // converting a mid-stream hang into a fast failure that evicts the dead socket
 // (reader.cancel destroys the underlying connection on both the direct-fetch and
 // the sx-tunnel path, since both hand back a web ReadableStream). Override with
-// TEAMCLAUDE_UPSTREAM_BODY_TIMEOUT_MS.
+// TEAM_MOKEA_UPSTREAM_BODY_TIMEOUT_MS.
 const DEFAULT_BODY_IDLE_TIMEOUT_MS = 120_000;
 
 function resolveBodyIdleTimeout() {
@@ -3945,7 +3944,7 @@ function resolveBodyIdleTimeout() {
 }
 
 // Race a single reader.read() against an inactivity deadline. Resolves to the
-// read result, or rejects with a transient TEAMCLAUDE_BODY_TIMEOUT if no chunk
+// read result, or rejects with a transient TEAM_MOKEA_BODY_TIMEOUT if no chunk
 // arrives within `ms`. The pending read is abandoned on timeout; the caller
 // cancels the reader (evicting the socket) in its finally block.
 export function readWithIdleTimeout(reader, ms) {
@@ -3953,7 +3952,7 @@ export function readWithIdleTimeout(reader, ms) {
   const timeout = new Promise((_, reject) => {
     timer = setTimeout(() => {
       const err = /** @type {CodedError} */ (new Error(`upstream stream idle for ${ms}ms`));
-      err.code = 'TEAMCLAUDE_BODY_TIMEOUT';
+      err.code = 'TEAM_MOKEA_BODY_TIMEOUT';
       reject(err);
     }, ms);
     timer.unref?.();

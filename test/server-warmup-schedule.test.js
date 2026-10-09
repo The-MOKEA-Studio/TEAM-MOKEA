@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnServer } from '../test-helpers/spawn-server.js';
 
 // The warm-up schedule, end to end through the real server: restored from the
-// config at startup, exposed through /teamclaude/quota, and replaced live by the
+// config at startup, exposed through /team-mokea/quota, and replaced live by the
 // `warmup` CLI's reload. The server is spawned through test-helpers/spawn-server.js
 // (pid-verified port, respawn on a lost port race): this file carried its own
 // bind-a-port-then-spawn harness, which lost the race to a neighbouring test on
@@ -29,10 +29,10 @@ async function serverWith(extra, prefix) {
   const server = await spawnServer({ dir, config: () => ({ proxy: { apiKey: 'tc-test' }, ...base, ...extra }) });
   return {
     ...server,
-    quota: async () => { const res = await fetch(`http://127.0.0.1:${server.port}/teamclaude/quota`); return { res, body: await res.json() }; },
+    quota: async () => { const res = await fetch(`http://127.0.0.1:${server.port}/team-mokea/quota`); return { res, body: await res.json() }; },
     // The `warmup` CLI against this server's config: it saves, then tells the server.
     warmup: (...args) => spawnSync(process.execPath, [cliPath, 'warmup', ...args], {
-      env: { ...process.env, TEAMCLAUDE_CONFIG: server.configPath, TEAMCLAUDE_DISABLE_AUTOUPDATE: '1' },
+      env: { ...process.env, TEAM_MOKEA_CONFIG: server.configPath, TEAM_MOKEA_DISABLE_AUTOUPDATE: '1' },
       encoding: 'utf8',
       timeout: 60_000,
     }),
@@ -41,7 +41,7 @@ async function serverWith(extra, prefix) {
 }
 
 test('server restores the persisted reset schedule and exposes it through quota', async () => {
-  const s = await serverWith({ warmupSchedule: { resetTime: '15:30', timezone: 'Europe/Moscow' } }, 'teamclaude-schedule-server-');
+  const s = await serverWith({ warmupSchedule: { resetTime: '15:30', timezone: 'Europe/Moscow' } }, 'team-mokea-schedule-server-');
   try {
     const { res, body } = await s.quota();
     assert.equal(res.status, 200);
@@ -58,7 +58,7 @@ test('server restores the persisted reset schedule and exposes it through quota'
 test('server restores a persisted rolling schedule and exposes its cadence through quota', async () => {
   const s = await serverWith({
     warmupSchedule: { mode: 'rolling', resetTime: '15:30', timezone: 'Europe/Moscow', anchorResetAt: '2030-09-01T12:30:00.000Z' },
-  }, 'teamclaude-rolling-server-');
+  }, 'team-mokea-rolling-server-');
   try {
     const { res, body } = await s.quota();
     assert.equal(res.status, 200);
@@ -76,7 +76,7 @@ test('server restores a persisted rolling schedule and exposes its cadence throu
 });
 
 test('warmup reset reloads a running server with the persisted schedule', async () => {
-  const s = await serverWith({}, 'teamclaude-schedule-reload-');
+  const s = await serverWith({}, 'team-mokea-schedule-reload-');
   try {
     const cli = s.warmup('reset', '15:30', '--timezone', 'Europe/Moscow');
     assert.equal(cli.status, 0, cli.stderr);
@@ -89,7 +89,7 @@ test('warmup reset reloads a running server with the persisted schedule', async 
 });
 
 test('warmup rolling reloads a running server without losing its saved anchor', async () => {
-  const s = await serverWith({}, 'teamclaude-rolling-reload-');
+  const s = await serverWith({}, 'team-mokea-rolling-reload-');
   try {
     const cli = s.warmup('rolling', '15:30', '--timezone', 'Europe/Moscow');
     assert.equal(cli.status, 0, cli.stderr);
@@ -105,10 +105,10 @@ test('warmup rolling reloads a running server without losing its saved anchor', 
 });
 
 test('an invalid schedule reload preserves the live schedule and quota endpoint', async () => {
-  const s = await serverWith({ warmupSchedule: { resetTime: '15:30', timezone: 'Europe/Moscow' } }, 'teamclaude-schedule-invalid-');
+  const s = await serverWith({ warmupSchedule: { resetTime: '15:30', timezone: 'Europe/Moscow' } }, 'team-mokea-schedule-invalid-');
   try {
     await writeFile(s.configPath, JSON.stringify({ ...s.config, warmupSchedule: { resetTime: '15:30', timezone: 'Moscow' } }));
-    const reload = await fetch(`http://127.0.0.1:${s.port}/teamclaude/reload`, { method: 'POST', headers: { 'x-api-key': 'tc-test' } });
+    const reload = await fetch(`http://127.0.0.1:${s.port}/team-mokea/reload`, { method: 'POST', headers: { 'x-api-key': 'tc-test' } });
     assert.equal(reload.status, 500);
     // A refused reload must leave the endpoint answering with the schedule it had.
     // No deadline of its own: a wedged endpoint is what the runner's timeout is for.

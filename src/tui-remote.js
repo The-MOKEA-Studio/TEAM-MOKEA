@@ -44,21 +44,21 @@ export class RemoteControl {
     this._fetch = fetchImpl;
   }
 
-  /** The current status payload (the same one `teamclaude status` renders). */
+  /** The current status payload (the same one `team-mokea status` renders). */
   async status() {
-    const payload = await this._call('GET', '/teamclaude/status');
+    const payload = await this._call('GET', '/team-mokea/status');
     // A status reply always carries an accounts array, even when it is empty.
     // Anything else answered on this port is not this control plane, and calling
     // that "connected with no accounts" would diagnose the wrong problem.
     if (!Array.isArray(payload?.accounts)) {
-      throw new Error('unexpected reply — this is not a teamclaude status endpoint');
+      throw new Error('unexpected reply — this is not a team-mokea status endpoint');
     }
     return payload;
   }
 
   /** Re-read config and refresh credentials on the running server. */
   reload() {
-    return this._action('POST', '/teamclaude/reload');
+    return this._action('POST', '/team-mokea/reload');
   }
 
   /**
@@ -73,7 +73,7 @@ export class RemoteControl {
    */
   async switchAccount(name) {
     try {
-      return await this._action('POST', '/teamclaude/switch', { account: name });
+      return await this._action('POST', '/team-mokea/switch', { account: name });
     } catch (err) {
       if (!err.answered && (err.status === 404 || err.status === 501)) {
         throw new Error('this server does not support switching accounts');
@@ -93,7 +93,7 @@ export class RemoteControl {
    */
   async _action(method, path, body) {
     const payload = await this._call(method, path, body);
-    if (payload?.ok !== true) throw new Error('unexpected reply — this is not a teamclaude control endpoint');
+    if (payload?.ok !== true) throw new Error('unexpected reply — this is not a team-mokea control endpoint');
     return payload;
   }
 
@@ -130,13 +130,13 @@ export class RemoteControl {
       // unknown paths upstream, and Anthropic's error body looks nothing like it).
       const answered = payload?.ok === false && typeof payload.error === 'string';
       // 401/403 needs a different fix from an unreachable server — but which fix
-      // depends on where we are pointed. A teamclaude server exempts loopback
+      // depends on where we are pointed. A team-mokea server exempts loopback
       // clients from the key gate, so a 401 from there cannot be about the key
       // and blaming it would send the operator to edit a config that is fine.
       const auth = !answered && (res.status === 401 || res.status === 403);
       const err = /** @type {CodedError} */ (new Error(auth
         ? (LOOPBACK_HOSTS.has(this.host)
-          ? `something other than teamclaude is answering on port ${this.port} (HTTP ${res.status})`
+          ? `something other than team-mokea is answering on port ${this.port} (HTTP ${res.status})`
           : `the server rejected the proxy API key (HTTP ${res.status})`)
         : answered ? text(payload.error, 200, `HTTP ${res.status}`) : `HTTP ${res.status}`));
       err.status = res.status;

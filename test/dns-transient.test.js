@@ -10,7 +10,7 @@ import { join } from 'node:path';
 // real config either way. Set it anyway, before importing, as defense in depth
 // against a future import gaining a module-load-time config read.
 const TMP = mkdtempSync(join(tmpdir(), 'tc-dns-'));
-process.env.TEAMCLAUDE_CONFIG = join(TMP, 'config.json');
+process.env.TEAM_MOKEA_CONFIG = join(TMP, 'config.json');
 
 const { AccountManager } = await import('../src/account-manager.js');
 const { createProxyServer } = await import('../src/server.js');

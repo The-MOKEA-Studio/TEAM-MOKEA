@@ -19,12 +19,12 @@ test('output is held, in order, and the console is restored on release', () => {
   const exits = [];
   const early = captureEarlyConsole({ target, stderr: { write() {} }, onExit: fn => exits.push(fn), offExit: fn => exits.splice(exits.indexOf(fn), 1) });
 
-  target.log('[TeamClaude] Starting on account "a"');
-  target.error('[TeamClaude] Refreshing token', 'for "a"');
+  target.log('[Team Mokea] Starting on account "a"');
+  target.error('[Team Mokea] Refreshing token', 'for "a"');
   target.warn('careful');
   assert.deepEqual(target.out, [], 'nothing reaches the screen while held');
 
-  assert.deepEqual(early.release(), ['[TeamClaude] Starting on account "a"', '[TeamClaude] Refreshing token for "a"', 'careful']);
+  assert.deepEqual(early.release(), ['[Team Mokea] Starting on account "a"', '[Team Mokea] Refreshing token for "a"', 'careful']);
   assert.equal(target.log, original.log);
   assert.equal(target.error, original.error);
   assert.equal(target.warn, original.warn);
@@ -38,10 +38,10 @@ test('a process that exits before the TUI starts gets its held lines on stderr',
   const exits = [];
   captureEarlyConsole({ target, stderr: { write: s => written.push(s) }, onExit: fn => exits.push(fn), offExit() {} });
 
-  target.error('[TeamClaude] Port 3456 is already in use');
+  target.error('[Team Mokea] Port 3456 is already in use');
   assert.equal(exits.length, 1);
   exits[0]();
-  assert.deepEqual(written, ['[TeamClaude] Port 3456 is already in use\n']);
+  assert.deepEqual(written, ['[Team Mokea] Port 3456 is already in use\n']);
   exits[0]();
   assert.equal(written.length, 1, 'flushed once');
 });

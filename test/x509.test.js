@@ -11,7 +11,7 @@ test('generated CA and leaf parse and form a valid chain', () => {
   const ca = new X509Certificate(caCertPem);
   const leaf = new X509Certificate(leafCertPem);
 
-  assert.match(ca.subject, /TeamClaude Local CA/);
+  assert.match(ca.subject, /Team Mokea Local CA/);
   assert.equal(ca.ca, true);
   assert.equal(leaf.subject, 'CN=api.anthropic.com');
   assert.equal(leaf.issuer, ca.subject);

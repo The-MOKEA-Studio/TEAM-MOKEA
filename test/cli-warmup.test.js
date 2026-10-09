@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const cliPath = fileURLToPath(new URL('../src/index.js', import.meta.url));
 
 async function withConfig(fn) {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-warmup-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-warmup-'));
   const configPath = join(dir, 'config.json');
   await writeFile(configPath, JSON.stringify({
     proxy: { port: 0, apiKey: 'tc-test' },
@@ -26,7 +26,7 @@ async function withConfig(fn) {
 
 function runCli(configPath, args) {
   return spawnSync(process.execPath, [cliPath, ...args], {
-    env: { ...process.env, TEAMCLAUDE_CONFIG: configPath },
+    env: { ...process.env, TEAM_MOKEA_CONFIG: configPath },
     encoding: 'utf8',
     timeout: 10_000,
   });

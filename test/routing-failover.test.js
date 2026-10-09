@@ -14,13 +14,13 @@ import { join } from 'node:path';
 // follows from that: fail over at once, then hold the account out briefly.
 
 const TMP = mkdtempSync(join(tmpdir(), 'tc-routing-failover-'));
-process.env.TEAMCLAUDE_CONFIG = join(TMP, 'config.json');
+process.env.TEAM_MOKEA_CONFIG = join(TMP, 'config.json');
 // Before the imports: the budget routingAgent gives a tunnel is read once, at
 // module load. Its 20s default is what a black-holed proxy costs a request in
 // production; the test that needs one cannot wait that long. Nothing else in
 // this file comes near it (a refused port fails at once, the mock relays at
 // once).
-process.env.TEAMCLAUDE_ROUTING_TIMEOUT_MS = '800';
+process.env.TEAM_MOKEA_ROUTING_TIMEOUT_MS = '800';
 
 const { AccountManager } = await import('../src/account-manager.js');
 const { createProxyServer, isTransientUpstreamError } = await import('../src/server.js');
@@ -244,7 +244,7 @@ test('a proxy that accepts the connection and never answers is a routing failure
 
     const failed = lines.filter(l => l.includes('Routing proxy failed for account "routed"'));
     assert.equal(failed.length, 1, lines.join('\n'));
-    // The tunnel's own budget (TEAMCLAUDE_ROUTING_TIMEOUT_MS above) gave up,
+    // The tunnel's own budget (TEAM_MOKEA_ROUTING_TIMEOUT_MS above) gave up,
     // not some caller's longer signal, which would have surfaced as a generic
     // timeout and been retried as transient. The failure names its budget.
     assert.match(failed[0], /handshake timed out after 800ms/);

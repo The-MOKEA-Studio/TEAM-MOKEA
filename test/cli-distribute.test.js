@@ -7,13 +7,13 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Same shape as cli-threshold.test.js: the real CLI against a throwaway
-// TEAMCLAUDE_CONFIG, on a port nothing listens on so the post-write reload
+// TEAM_MOKEA_CONFIG, on a port nothing listens on so the post-write reload
 // notification is a no-op.
 
 const cliPath = fileURLToPath(new URL('../src/index.js', import.meta.url));
 
 async function writeConfig(distributeSessions) {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-distribute-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-distribute-'));
   const path = join(dir, 'config.json');
   const config = {
     proxy: { port: 3, apiKey: 'tc-test' },
@@ -28,7 +28,7 @@ async function writeConfig(distributeSessions) {
 
 function runCli(configPath, cliArgs) {
   const child = spawn(process.execPath, [cliPath, ...cliArgs], {
-    env: { ...process.env, TEAMCLAUDE_CONFIG: configPath },
+    env: { ...process.env, TEAM_MOKEA_CONFIG: configPath },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let stdout = '';
@@ -97,6 +97,6 @@ test('an unknown argument is refused without touching the config', async () => {
   const before = await readFile(configPath, 'utf8');
   const res = await runCli(configPath, ['distribute', 'maybe']);
   assert.equal(res.code, 1, res.stderr);
-  assert.match(res.stderr, /Usage: teamclaude distribute/);
+  assert.match(res.stderr, /Usage: team-mokea distribute/);
   assert.equal(await readFile(configPath, 'utf8'), before);
 });

@@ -70,7 +70,7 @@ function ownsInlineToken(entry) {
 // Entries the operator removed in this process, by id.
 //
 // The save has to tell two things apart that look identical on disk: a row that
-// appeared since the last reload (`teamclaude login` while the server runs —
+// appeared since the last reload (`team-mokea login` while the server runs —
 // keep it) and a row the operator just deleted (drop it). Both are "on disk but
 // not in memory", and removal is itself a save, so adopting disk-only rows
 // without this would resurrect the account the operator was in the middle of
@@ -105,7 +105,7 @@ export function clearRemovedAccountIds(config) {
 
 // Entries the operator added in this process, by id — the mirror of REMOVED.
 //
-// A reload now drops a running account no disk row claims (a `teamclaude
+// A reload now drops a running account no disk row claims (a `team-mokea
 // remove` from another shell). The TUI and the MCP endpoint add an account the
 // other way round: into memory first, then a save. A reload that reads the
 // file in between sees a running account the file does not describe yet and
@@ -224,7 +224,7 @@ export function mergeAccountsForSave(configAccounts, managerAccounts, diskAccoun
 
   // Carry over rows that exist on disk and not in memory. The list used to be
   // exactly as long as the in-memory one, so an account added by another
-  // process since the last reload — `teamclaude login` or `import` while the
+  // process since the last reload — `team-mokea login` or `import` while the
   // server runs — was silently dropped by the next save (#205). The refresh
   // handler already re-reads disk for this reason; the save had no equivalent.
   //

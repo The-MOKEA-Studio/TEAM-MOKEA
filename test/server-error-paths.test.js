@@ -50,7 +50,7 @@ const postMessages = (port) => outcomeWithin(`http://127.0.0.1:${port}/v1/messag
 });
 
 // Run `fn` with console.error muted: these tests deliberately provoke the
-// "[TeamClaude] Unhandled error" log, and the stack traces would drown the run.
+// "[Team Mokea] Unhandled error" log, and the stack traces would drown the run.
 async function quietly(fn) {
   const realErr = console.error;
   console.error = () => {};
@@ -143,7 +143,7 @@ test('a throwing status hook is answered, not left hanging', async () => {
   });
   const port = await listen(proxy);
   try {
-    assert.deepEqual(await quietly(() => outcomeWithin(`http://127.0.0.1:${port}/teamclaude/status`)), { status: 502 },
+    assert.deepEqual(await quietly(() => outcomeWithin(`http://127.0.0.1:${port}/team-mokea/status`)), { status: 502 },
       'a throwing status hook left the client waiting forever');
   } finally {
     proxy.close();
@@ -172,7 +172,7 @@ test('a status hook returning an unserializable value closes the connection', as
     const port = await listen(proxy);
     let outcome;
     try {
-      outcome = await quietly(() => outcomeWithin(`http://127.0.0.1:${port}/teamclaude/status`));
+      outcome = await quietly(() => outcomeWithin(`http://127.0.0.1:${port}/team-mokea/status`));
     } finally {
       proxy.close();
     }

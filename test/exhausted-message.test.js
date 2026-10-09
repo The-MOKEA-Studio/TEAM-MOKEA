@@ -160,7 +160,7 @@ test('the disabled aside counts only accounts the request could have used', () =
 // that was revoked (`status: 'error'` after invalid_grant). Selection skips both,
 // correctly. The message said "all 2 accounts are at their quota or rate limit",
 // the TUI went on showing room on the errored account, and the operator waited
-// for a reset when the fix was `teamclaude login`.
+// for a reset when the fix was `team-mokea login`.
 
 // AccountManager normalizes status and quota on construction, so these mutate
 // the live account objects, the way the warmer and account-disable tests do.
@@ -176,7 +176,7 @@ test('a credential-dead account is named, apart from the ones at their quota', (
   am.accounts[1].status = 'error';
 
   const msg = said(am, 'claude-fable-5-1', 60);
-  assert.match(msg, /for claude-fable-5-1: account "jpeg340" needs re-login \(run: teamclaude login\); 1 account is at its quota or rate limit\./);
+  assert.match(msg, /for claude-fable-5-1: account "jpeg340" needs re-login \(run: team-mokea login\); 1 account is at its quota or rate limit\./);
   assert.doesNotMatch(msg, /all 2 accounts/, 'the dead credential was counted as spent quota');
   assert.doesNotMatch(msg, /"john"/, 'only the account that needs action is named');
 });
@@ -191,7 +191,7 @@ test('the wait beside a dead credential belongs to the accounts still worth wait
 
   const candidates = candidateAccounts(am, 'claude-opus-5', undefined);
   const msg = exhaustedMessage(candidates, 'claude-opus-5', computeRetryAfter(am, candidates, 'claude-opus-5'));
-  assert.match(msg, /needs re-login \(run: teamclaude login\); 1 account is at its quota or rate limit\. Quota resets in 2d 3h\. \(1 more disabled\)$/);
+  assert.match(msg, /needs re-login \(run: team-mokea login\); 1 account is at its quota or rate limit\. Quota resets in 2d 3h\. \(1 more disabled\)$/);
 });
 
 test('a mixed fleet with no reset to name still says to retry', () => {
@@ -207,7 +207,7 @@ test('a fleet of nothing but dead credentials promises no reset', () => {
   am.accounts[0].status = 'error';
   am.accounts[1].status = 'error';
   const msg = said(am, 'claude-fable-5-1', 60);
-  assert.match(msg, /accounts "a", "b" need re-login \(run: teamclaude login\), and no other account is eligible for it\. \(1 more disabled\)$/);
+  assert.match(msg, /accounts "a", "b" need re-login \(run: team-mokea login\), and no other account is eligible for it\. \(1 more disabled\)$/);
   assert.doesNotMatch(msg, /resets in/i, 'waiting will not bring a revoked token back');
   assert.doesNotMatch(msg, /Retry shortly/i);
   assert.doesNotMatch(msg, /quota or rate limit/i);
@@ -248,7 +248,7 @@ test('an entitlement-denied account is not told to log in again', () => {
   assert.equal(am.unavailableReason(am.accounts[1], 'claude-opus-5'), 'entitlement');
 
   const msg = said(am, 'claude-opus-5', 60);
-  assert.doesNotMatch(msg, /re-login|teamclaude login/);
+  assert.doesNotMatch(msg, /re-login|team-mokea login/);
   assert.match(msg, /all 2 accounts are at their quota or rate limit\. Quota resets in 60s\.$/);
 });
 
@@ -287,7 +287,7 @@ test('the function needs no manager: plain account records are enough', () => {
   const msg = exhaustedMessage(
     [{ name: 'x', status: 'error' }, { name: 'y', status: 'active' }, { name: 'z', disabled: true, status: 'error' }],
     'm', 90);
-  assert.equal(msg, 'No account can serve this request for m: account "x" needs re-login (run: teamclaude login); '
+  assert.equal(msg, 'No account can serve this request for m: account "x" needs re-login (run: team-mokea login); '
     + '1 account is at its quota or rate limit. Quota resets in 90s. (1 more disabled)');
 });
 
@@ -296,15 +296,15 @@ test('an account inside its routing cooldown is named with its own next step, no
   const routed = { name: 'routed@example.com', status: 'active', routingFailedUntil: soon };
   assert.equal(
     exhaustedMessage([routed], null, 20),
-    'No account can serve this request: account "routed@example.com" cannot reach its routing proxy (see: teamclaude routing <name>), and no other account is eligible for it.',
+    'No account can serve this request: account "routed@example.com" cannot reach its routing proxy (see: team-mokea routing <name>), and no other account is eligible for it.',
   );
   assert.equal(
     exhaustedMessage([routed, { name: 'full', status: 'active' }], 'claude-opus-5', 300),
-    'No account can serve this request for claude-opus-5: account "routed@example.com" cannot reach its routing proxy (see: teamclaude routing <name>); 1 account is at its quota or rate limit. Quota resets in 5m.',
+    'No account can serve this request for claude-opus-5: account "routed@example.com" cannot reach its routing proxy (see: team-mokea routing <name>); 1 account is at its quota or rate limit. Quota resets in 5m.',
   );
   assert.equal(
     exhaustedMessage([{ name: 'dead', status: 'error' }, routed], null, 20),
-    'No account can serve this request: account "dead" needs re-login (run: teamclaude login); account "routed@example.com" cannot reach its routing proxy (see: teamclaude routing <name>), and no other account is eligible for it.',
+    'No account can serve this request: account "dead" needs re-login (run: team-mokea login); account "routed@example.com" cannot reach its routing proxy (see: team-mokea routing <name>), and no other account is eligible for it.',
   );
   // A cooldown that has lapsed is not a blocker any more.
   assert.match(exhaustedMessage([{ name: 'was-routed', status: 'active', routingFailedUntil: Date.now() - 1 }], null, 60), /at their quota or rate limit/);

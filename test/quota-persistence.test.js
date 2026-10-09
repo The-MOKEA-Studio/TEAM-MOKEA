@@ -112,12 +112,12 @@ test('restoreQuotaState ignores a non-array / missing payload', () => {
 });
 
 test('getStatePath sits beside the config as a .state.json sibling', () => {
-  const prev = process.env.TEAMCLAUDE_CONFIG;
-  process.env.TEAMCLAUDE_CONFIG = '/tmp/teamclaude-xyz.json';
+  const prev = process.env.TEAM_MOKEA_CONFIG;
+  process.env.TEAM_MOKEA_CONFIG = '/tmp/team-mokea-xyz.json';
   try {
-    assert.equal(getStatePath(), '/tmp/teamclaude-xyz.state.json');
+    assert.equal(getStatePath(), '/tmp/team-mokea-xyz.state.json');
   } finally {
-    if (prev === undefined) delete process.env.TEAMCLAUDE_CONFIG;
-    else process.env.TEAMCLAUDE_CONFIG = prev;
+    if (prev === undefined) delete process.env.TEAM_MOKEA_CONFIG;
+    else process.env.TEAM_MOKEA_CONFIG = prev;
   }
 });

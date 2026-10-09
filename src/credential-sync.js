@@ -2,7 +2,7 @@
 //
 // A pooled OAuth token lives a few days and then has to be signed in again —
 // on every machine that holds a copy. With this install signed in to
-// callback.net (`teamclaude callback login`), each OAuth account's tokens are
+// callback.net (`team-mokea callback login`), each OAuth account's tokens are
 // also kept in the user's credential store there (`User/Credential`, one row
 // per account, encrypted at rest), and every signed-in install follows it:
 //
@@ -51,7 +51,7 @@ import { sameIdentity } from './identity.js';
 import { safeLine } from './safe-text.js';
 
 /** Rows this proxy owns start with this; anything else in the store is left alone. */
-export const KEY_PREFIX = 'teamrouter.';
+export const KEY_PREFIX = 'team-mokea.';
 const BLOB_VERSION = 1;
 /** How long a taken lock holds off the others before it can be taken over: a renewal takes seconds. */
 const LOCK_TIMEOUT_S = 30;
@@ -349,7 +349,7 @@ export class CredentialSync {
         if (row.deletedAt != null) {
           // Removed on another install. A sign-in since would have replaced the
           // tombstone (storeSignIn), so the account here is a copy to drop.
-          this.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" was removed on another install (${new Date(row.deletedAt).toISOString()}); removing it here`);
+          this.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" was removed on another install (${new Date(row.deletedAt).toISOString()}); removing it here`);
           this.evictAccount(account);
           result.evicted++;
           continue;
@@ -385,17 +385,17 @@ export class CredentialSync {
         const idx = this.addAccount(entry);
         if (idx == null) continue;
         result.added++;
-        this.log(`[TeamClaude] Account "${safeLine(entry.name, 64)}" added from callback.net (signed in on ${safeLine(row.blob.by, 48)})`);
+        this.log(`[Team Mokea] Account "${safeLine(entry.name, 64)}" added from callback.net (signed in on ${safeLine(row.blob.by, 48)})`);
       }
       this.lastSyncAt = this.now();
       this.lastError = null;
       if (result.adopted || result.pushed || result.created || result.added || result.evicted || result.expired) {
-        this.log(`[TeamClaude] callback.net sync (${reason}): ${result.adopted} adopted, ${result.pushed} updated, ${result.created} stored, ${result.added} added, ${result.evicted} removed, ${result.expired} tombstones expired`);
+        this.log(`[Team Mokea] callback.net sync (${reason}): ${result.adopted} adopted, ${result.pushed} updated, ${result.created} stored, ${result.added} added, ${result.evicted} removed, ${result.expired} tombstones expired`);
       }
       return result;
     } catch (/** @type {any} */ err) {
       this.lastError = safeLine(err?.message || String(err), 200);
-      this.log(`[TeamClaude] callback.net sync (${reason}) failed: ${this.lastError}`);
+      this.log(`[Team Mokea] callback.net sync (${reason}) failed: ${this.lastError}`);
       throw err;
     }
   }
@@ -421,7 +421,7 @@ export class CredentialSync {
 
   /** Install a row's tokens on an account. The echo guard keeps this from being pushed back. */
   _adopt(/** @type {Record<string, any>} */ account, /** @type {Blob} */ blob, /** @type {string} */ why) {
-    this.log(`[TeamClaude] Account "${safeLine(account.name, 64)}": taking the token renewed on ${safeLine(blob.by, 48)} (${why})`);
+    this.log(`[Team Mokea] Account "${safeLine(account.name, 64)}": taking the token renewed on ${safeLine(blob.by, 48)} (${why})`);
     this.am.updateAccountTokens(account.index, tokensOf(blob));
   }
 
@@ -471,7 +471,7 @@ export class CredentialSync {
       if (row) await this._patch(row, account, tokens);
       else await this._create(account, tokens);
     } catch (/** @type {any} */ err) {
-      this.log(`[TeamClaude] callback.net: could not store the new token for "${safeLine(account.name, 64)}": ${safeLine(err?.message || String(err), 160)}`);
+      this.log(`[Team Mokea] callback.net: could not store the new token for "${safeLine(account.name, 64)}": ${safeLine(err?.message || String(err), 160)}`);
     }
   }
 
@@ -498,7 +498,7 @@ export class CredentialSync {
       this._adopt(account, /** @type {Blob} */ (row.blob), 'its own token was rejected');
       return true;
     } catch (/** @type {any} */ err) {
-      this.log(`[TeamClaude] callback.net: could not look for a newer token for "${safeLine(account.name, 64)}": ${safeLine(err?.message || String(err), 160)}`);
+      this.log(`[Team Mokea] callback.net: could not look for a newer token for "${safeLine(account.name, 64)}": ${safeLine(err?.message || String(err), 160)}`);
       return false;
     }
   }
@@ -526,7 +526,7 @@ export class CredentialSync {
       this.rows.set(fresh.key, fresh);
       return true;
     } catch (/** @type {any} */ err) {
-      this.log(`[TeamClaude] callback.net: could not record the removal of "${safeLine(account.name, 64)}": ${safeLine(err?.message || String(err), 160)}`);
+      this.log(`[Team Mokea] callback.net: could not record the removal of "${safeLine(account.name, 64)}": ${safeLine(err?.message || String(err), 160)}`);
       return false;
     }
   }
@@ -581,14 +581,14 @@ export class CredentialSync {
         locked = await this.api('POST', `User/Credential/${row.id}:lock`, { timeout: LOCK_TIMEOUT_S });
       } catch (/** @type {any} */ err) {
         if (err?.token !== 'error_credential_locked') {
-          this.log(`[TeamClaude] callback.net: lock for "${name}" failed (${safeLine(err?.message || String(err), 120)}); renewing without it`);
+          this.log(`[Team Mokea] callback.net: lock for "${name}" failed (${safeLine(err?.message || String(err), 120)}); renewing without it`);
           return refresh();
         }
         // Another install is renewing. A token that still works serves this
         // request as it is; the renewal arrives through the store, and the
         // next request asks again. Only a dead token has to wait.
         if (!force && !isTokenExpired(account.expiresAt)) {
-          this.log(`[TeamClaude] Account "${name}": another install is renewing its token; keeping the current one until then`);
+          this.log(`[Team Mokea] Account "${name}": another install is renewing its token; keeping the current one until then`);
           return null;
         }
         // Wait for what it stores.
@@ -599,11 +599,11 @@ export class CredentialSync {
           try { r = rowOf(await this.api('GET', `User/Credential/${row.id}`)); } catch { continue; }
           this.rows.set(r.key, r);
           if (heldElsewhere(r.blob, account, this.by)) {
-            this.log(`[TeamClaude] Account "${name}": renewed on ${safeLine(/** @type {Blob} */ (r.blob).by, 48)} while this install waited`);
+            this.log(`[Team Mokea] Account "${name}": renewed on ${safeLine(/** @type {Blob} */ (r.blob).by, 48)} while this install waited`);
             return tokensOf(/** @type {Blob} */ (r.blob));
           }
         }
-        this.log(`[TeamClaude] Account "${name}": the lock holder stored no renewal in ${LOCKED_WAIT_MS / 1000}s; trying the lock again`);
+        this.log(`[Team Mokea] Account "${name}": the lock holder stored no renewal in ${LOCKED_WAIT_MS / 1000}s; trying the lock again`);
         continue;
       }
       const current = rowOf({ ...locked, Data: locked?.Data ?? '' });
@@ -612,13 +612,13 @@ export class CredentialSync {
         // Removed on another install since the last pass. This request still
         // gets its token; the pass that follows takes the account out.
         await this._unlock(row);
-        this.log(`[TeamClaude] Account "${name}" was removed on another install; renewing this once, then removing it here`);
+        this.log(`[Team Mokea] Account "${name}" was removed on another install; renewing this once, then removing it here`);
         this.sync('tombstone').catch(() => {});
         return refresh();
       }
       if (heldElsewhere(current.blob, account, this.by)) {
         await this._unlock(row);
-        this.log(`[TeamClaude] Account "${name}": already renewed on ${safeLine(/** @type {Blob} */ (current.blob).by, 48)}; taking that token`);
+        this.log(`[Team Mokea] Account "${name}": already renewed on ${safeLine(/** @type {Blob} */ (current.blob).by, 48)}; taking that token`);
         return tokensOf(/** @type {Blob} */ (current.blob));
       }
       try {
@@ -626,14 +626,14 @@ export class CredentialSync {
         try {
           await this._patch(current, account, tokens);
         } catch (/** @type {any} */ err) {
-          this.log(`[TeamClaude] callback.net: could not store the renewed token for "${name}": ${safeLine(err?.message || String(err), 120)}`);
+          this.log(`[Team Mokea] callback.net: could not store the renewed token for "${name}": ${safeLine(err?.message || String(err), 120)}`);
         }
         return tokens;
       } finally {
         await this._unlock(row);
       }
     }
-    this.log(`[TeamClaude] Account "${name}": could not take the callback.net lock after ${MAX_LOCK_ROUNDS} rounds; renewing without it`);
+    this.log(`[Team Mokea] Account "${name}": could not take the callback.net lock after ${MAX_LOCK_ROUNDS} rounds; renewing without it`);
     return refresh();
   }
 

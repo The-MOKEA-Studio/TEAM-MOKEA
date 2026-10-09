@@ -39,8 +39,8 @@ A test that runs `src/index.js server --headless` as a child must not pick a
 port itself and poll until "something answers". Files run in parallel, so the
 port a probe just released can be taken before the child's `listen()` — and
 if what took it was another test's in-process `createProxyServer`, its
-`/teamclaude/status` answers 200, the poll is satisfied, and the test drives
-the wrong server (a `POST /teamclaude/reload` there is a 501). `spawnServer()`
+`/team-mokea/status` answers 200, the poll is satisfied, and the test drives
+the wrong server (a `POST /team-mokea/reload` there is a 501). `spawnServer()`
 treats a status reply as readiness only when its `server.pid` is the child's
 own, and respawns on a fresh port when the child lost the race. `closedPort()`
 from the same module is still right for a *dead* upstream, where a port nothing

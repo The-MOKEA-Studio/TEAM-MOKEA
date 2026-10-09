@@ -283,14 +283,14 @@ test('dimensions are resolved from configured headers only', () => {
   const proxy = {
     usageDimensions: [
       { name: 'project', header: 'X-Teamclaude-Project' },
-      { name: 'ref', header: 'x-teamclaude-ref' },
+      { name: 'ref', header: 'x-team-mokea-ref' },
       { name: 'bad name!', header: 'x-ignored' },
       { name: 'creds', header: 'authorization' },
       { name: 'creds2', header: 'cookie' },
     ],
   };
   const headers = {
-    'x-teamclaude-project': 'skaile-dev',
+    'x-team-mokea-project': 'skaile-dev',
     'x-claude-code-session-id': 'sess-1',
     authorization: 'Bearer secret',
     cookie: 'a=b',
@@ -302,7 +302,7 @@ test('dimensions are resolved from configured headers only', () => {
   // credential can never become a persisted counter name.
   assert.deepEqual(
     [...usageDimensionHeaderNames(proxy)].sort(),
-    ['x-teamclaude-project', 'x-teamclaude-ref'],
+    ['x-team-mokea-project', 'x-team-mokea-ref'],
   );
   assert.deepEqual(resolveUsageDimensions({}, headers), []);
   assert.deepEqual(resolveUsageDimensions(null, headers), []);
@@ -347,7 +347,7 @@ test('a dimension header is booked here and NOT forwarded upstream', async () =>
   const am = new AccountManager([{ name: 'acct', type: 'api_key', apiKey: 'sk-a' }], 0.98);
   const dimensionUsage = new UsageDimensionTracker();
   const proxy = createProxyServer(am, {
-    proxy: { ...PROXY, usageDimensions: [{ name: 'project', header: 'x-teamclaude-project' }] },
+    proxy: { ...PROXY, usageDimensions: [{ name: 'project', header: 'x-team-mokea-project' }] },
     upstream: `http://127.0.0.1:${upstreamPort}`,
   }, {}, null, new ClientUsageTracker(), dimensionUsage);
   const proxyPort = await listen(proxy);
@@ -357,8 +357,8 @@ test('a dimension header is booked here and NOT forwarded upstream', async () =>
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-teamclaude-project': 'skaile-dev',
-        'x-teamclaude-other': 'kept',
+        'x-team-mokea-project': 'skaile-dev',
+        'x-team-mokea-other': 'kept',
       },
       body: JSON.stringify({ model: 'x', messages: [] }),
     });
@@ -367,9 +367,9 @@ test('a dimension header is booked here and NOT forwarded upstream', async () =>
     assert.equal(dimensionUsage.export().project['skaile-dev'].inputTokens, 7);
     // The header labels traffic for THIS proxy. Forwarding it would hand the
     // operator's internal project names to the upstream vendor for no benefit.
-    assert.equal(seen['x-teamclaude-project'], undefined, 'dimension header must not reach upstream');
+    assert.equal(seen['x-team-mokea-project'], undefined, 'dimension header must not reach upstream');
     // Only the configured ones are stripped — this is not a general filter.
-    assert.equal(seen['x-teamclaude-other'], 'kept');
+    assert.equal(seen['x-team-mokea-other'], 'kept');
   } finally {
     proxy.close();
     upstream.close();

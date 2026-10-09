@@ -6,7 +6,7 @@
 }:
 
 let
-  cfg = config.services.teamclaude;
+  cfg = config.services.team-mokea;
 
   inherit (lib)
     literalExpression
@@ -19,9 +19,9 @@ let
 
   defaultPackage = pkgs.callPackage ./package.nix { };
   configFile =
-    if cfg.configFile == null then "${config.xdg.configHome}/teamclaude.json" else cfg.configFile;
+    if cfg.configFile == null then "${config.xdg.configHome}/team-mokea.json" else cfg.configFile;
   stateDirectory =
-    if cfg.stateDirectory == null then "${config.xdg.stateHome}/teamclaude" else cfg.stateDirectory;
+    if cfg.stateDirectory == null then "${config.xdg.stateHome}/team-mokea" else cfg.stateDirectory;
 
   serverArgs = [
     "server"
@@ -33,7 +33,7 @@ let
   ]
   ++ cfg.extraArgs;
 
-  preStart = pkgs.writeShellScript "teamclaude-user-pre-start" (
+  preStart = pkgs.writeShellScript "team-mokea-user-pre-start" (
     ''
       set -eu
 
@@ -55,31 +55,31 @@ let
   );
 in
 {
-  options.services.teamclaude = {
-    enable = mkEnableOption "TeamClaude user proxy service";
+  options.services.team-mokea = {
+    enable = mkEnableOption "Team Mokea user proxy service";
 
     package = mkOption {
       type = types.package;
       default = defaultPackage;
       defaultText = literalExpression "pkgs.callPackage ./nix/package.nix { }";
-      description = "TeamClaude package to run.";
+      description = "Team Mokea package to run.";
     };
 
     installPackage = mkOption {
       type = types.bool;
       default = true;
-      description = "Whether to add the TeamClaude CLI package to home.packages.";
+      description = "Whether to add the Team Mokea CLI package to home.packages.";
     };
 
     configFile = mkOption {
       type = types.nullOr types.str;
       default = null;
-      example = "~/.config/teamclaude.json";
+      example = "~/.config/team-mokea.json";
       description = ''
-        Mutable TeamClaude config path. When null, the module uses
-        xdg.configHome/teamclaude.json.
+        Mutable Team Mokea config path. When null, the module uses
+        xdg.configHome/team-mokea.json.
 
-        This should be writable by the user service because TeamClaude persists
+        This should be writable by the user service because Team Mokea persists
         refreshed OAuth tokens, account changes, routes, quota settings, and
         runtime state next to the config.
       '';
@@ -88,7 +88,7 @@ in
     configSource = mkOption {
       type = types.nullOr types.str;
       default = null;
-      example = literalExpression "config.sops.secrets.teamclaude-config.path";
+      example = literalExpression "config.sops.secrets.team-mokea-config.path";
       description = ''
         Optional seed config copied to configFile only when configFile does not
         already exist. This is intended for sops-nix Home Manager integration or
@@ -99,10 +99,10 @@ in
     stateDirectory = mkOption {
       type = types.nullOr types.str;
       default = null;
-      example = "~/.local/state/teamclaude";
+      example = "~/.local/state/team-mokea";
       description = ''
         Working directory created for the user service. When null, the module
-        uses xdg.stateHome/teamclaude.
+        uses xdg.stateHome/team-mokea.
       '';
     };
 
@@ -111,15 +111,15 @@ in
       default = null;
       example = "127.0.0.1";
       description = ''
-        Optional bind host override passed through TEAMCLAUDE_HOST. Leave null
-        to use TeamClaude's config/default behavior.
+        Optional bind host override passed through TEAM_MOKEA_HOST. Leave null
+        to use Team Mokea's config/default behavior.
       '';
     };
 
     logDirectory = mkOption {
       type = types.nullOr types.str;
       default = null;
-      example = "~/.local/state/teamclaude/logs";
+      example = "~/.local/state/team-mokea/logs";
       description = "Optional request/response log directory passed via --log-to.";
     };
 
@@ -127,16 +127,16 @@ in
       type = types.listOf types.str;
       default = [ ];
       example = [ "--no-tui" ];
-      description = "Extra command-line arguments appended to teamclaude server --headless.";
+      description = "Extra command-line arguments appended to team-mokea server --headless.";
     };
 
     environment = mkOption {
       type = types.attrsOf types.str;
       default = { };
       example = {
-        TEAMCLAUDE_UPSTREAM_HEADERS_TIMEOUT_MS = "120000";
+        TEAM_MOKEA_UPSTREAM_HEADERS_TIMEOUT_MS = "120000";
       };
-      description = "Extra environment variables for the TeamClaude user service.";
+      description = "Extra environment variables for the Team Mokea user service.";
     };
 
     serviceConfig = mkOption {
@@ -154,9 +154,9 @@ in
   config = mkIf cfg.enable {
     home.packages = mkIf cfg.installPackage [ cfg.package ];
 
-    systemd.user.services.teamclaude = {
+    systemd.user.services.team-mokea = {
       Unit = {
-        Description = "TeamClaude proxy";
+        Description = "Team Mokea proxy";
       };
 
       Service = {
@@ -167,11 +167,11 @@ in
         RestartSec = "5s";
         WorkingDirectory = stateDirectory;
         Environment = [
-          "TEAMCLAUDE_CONFIG=${configFile}"
-          "TEAMCLAUDE_DISABLE_AUTOUPDATE=1"
+          "TEAM_MOKEA_CONFIG=${configFile}"
+          "TEAM_MOKEA_DISABLE_AUTOUPDATE=1"
         ]
         ++ lib.optionals (cfg.host != null) [
-          "TEAMCLAUDE_HOST=${cfg.host}"
+          "TEAM_MOKEA_HOST=${cfg.host}"
         ]
         ++ lib.mapAttrsToList (name: value: "${name}=${value}") cfg.environment;
       }

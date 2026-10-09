@@ -58,7 +58,7 @@ export const ROUTING_SCHEMES = ['http', 'socks4', 'socks4a', 'socks5', 'socks5h'
 // account's proxy says nothing about the others, so failing over is the fix.
 // Nothing of the request has been sent when it is raised, so a retry elsewhere
 // can never duplicate a request upstream.
-export const ROUTING_FAILED = 'TEAMCLAUDE_ROUTING_FAILED';
+export const ROUTING_FAILED = 'TEAM_MOKEA_ROUTING_FAILED';
 
 /**
  * @typedef {Object} RoutingProxy

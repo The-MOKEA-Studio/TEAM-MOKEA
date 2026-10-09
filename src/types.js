@@ -4,9 +4,9 @@
 
 /**
  * An Error carrying the fields Node and this codebase hang on one: `code` (an
- * errno such as ECONNRESET, or one of the TEAMCLAUDE_* codes the proxy mints),
+ * errno such as ECONNRESET, or one of the TEAM_MOKEA_* codes the proxy mints),
  * `status` (the HTTP status a refused request was answered with) and
- * `answered` (whether that status came from a teamclaude control plane).
+ * `answered` (whether that status came from a team-mokea control plane).
  *
  * @typedef {Error & { code?: string, status?: number, answered?: boolean }} CodedError
  */

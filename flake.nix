@@ -1,5 +1,5 @@
 {
-  description = "TeamClaude packaged as a dependency-free Node application";
+  description = "Team Mokea packaged as a dependency-free Node application";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -26,11 +26,11 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          teamclaude = pkgs.callPackage ./nix/package.nix { };
+          team-mokea = pkgs.callPackage ./nix/package.nix { };
         in
         {
-          inherit teamclaude;
-          default = teamclaude;
+          inherit team-mokea;
+          default = team-mokea;
         }
       );
 
@@ -41,7 +41,7 @@
         in
         {
           # `nix flake check` builds the package on every system.
-          package = self.packages.${system}.teamclaude;
+          package = self.packages.${system}.team-mokea;
         }
         # The NixOS VM test only runs on Linux (nixosTest requires a Linux host).
         // nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
@@ -50,24 +50,24 @@
       );
 
       apps = forAllSystems (system: {
-        teamclaude = {
+        team-mokea = {
           type = "app";
-          program = "${self.packages.${system}.teamclaude}/bin/teamclaude";
+          program = "${self.packages.${system}.team-mokea}/bin/team-mokea";
           meta = {
-            inherit (self.packages.${system}.teamclaude.meta) description;
+            inherit (self.packages.${system}.team-mokea.meta) description;
           };
         };
-        default = self.apps.${system}.teamclaude;
+        default = self.apps.${system}.team-mokea;
       });
 
       nixosModules = {
-        teamclaude = import ./nix/module.nix;
-        default = self.nixosModules.teamclaude;
+        team-mokea = import ./nix/module.nix;
+        default = self.nixosModules.team-mokea;
       };
 
       homeManagerModules = {
-        teamclaude = import ./nix/home-manager-module.nix;
-        default = self.homeManagerModules.teamclaude;
+        team-mokea = import ./nix/home-manager-module.nix;
+        default = self.homeManagerModules.team-mokea;
       };
     };
 }

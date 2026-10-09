@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// `teamclaude status --json` is read through a pipe by anything that is not a
+// `team-mokea status --json` is read through a pipe by anything that is not a
 // terminal (`| jq`, a script), and process.stdout.write is asynchronous on a
 // pipe: the process.exit that follows the write used to cut the payload to its
 // first few hundred bytes. The status served here is bigger than any pipe
@@ -39,7 +39,7 @@ async function fakeControlPlane(status) {
   const seen = [];
   const server = http.createServer((req, res) => {
     seen.push({ method: req.method, url: req.url, key: req.headers['x-api-key'] });
-    if (req.method !== 'GET' || req.url !== '/teamclaude/status') {
+    if (req.method !== 'GET' || req.url !== '/team-mokea/status') {
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end('{"error":"not found"}');
       return;
@@ -53,7 +53,7 @@ async function fakeControlPlane(status) {
 }
 
 async function writeConfig(port) {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-status-pipe-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-status-pipe-'));
   const path = join(dir, 'config.json');
   await writeFile(path, JSON.stringify({
     proxy: { port, apiKey: 'tc-test' },
@@ -66,7 +66,7 @@ async function writeConfig(port) {
 
 function runCli(configPath, cliArgs) {
   const child = spawn(process.execPath, [cliPath, ...cliArgs], {
-    env: { ...process.env, TEAMCLAUDE_CONFIG: configPath, TEAMCLAUDE_DISABLE_AUTOUPDATE: '1' },
+    env: { ...process.env, TEAM_MOKEA_CONFIG: configPath, TEAM_MOKEA_DISABLE_AUTOUPDATE: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let stdout = '';
@@ -92,7 +92,7 @@ test('status --json through a pipe delivers the whole payload before exiting', a
   try {
     const res = await runCli(config.path, ['status', '--json']);
     assert.equal(res.code, 0, res.stderr);
-    assert.deepEqual(fake.seen, [{ method: 'GET', url: '/teamclaude/status', key: 'tc-test' }]);
+    assert.deepEqual(fake.seen, [{ method: 'GET', url: '/team-mokea/status', key: 'tc-test' }]);
     assert.equal(res.stdout.length, expected.length + 1, `got ${res.stdout.length} of ${expected.length + 1} bytes`);
     assert.deepEqual(JSON.parse(res.stdout), status);
   } finally {

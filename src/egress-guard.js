@@ -73,7 +73,7 @@ export class EgressGuard {
         // tunnel up in the normal case, so that address is the one to hold for.
         if (this.pin === 'auto' && !this._auto) {
           this._auto = ip;
-          this.log(`[TeamClaude] Egress pinned to ${ip}`);
+          this.log(`[Team Mokea] Egress pinned to ${ip}`);
         }
         return ip;
       } catch {
@@ -117,14 +117,14 @@ export class EgressGuard {
     let state = await this.check();
     if (state.ok) return { ...state, waitedMs: 0 };
 
-    this.log(`[TeamClaude] Egress is ${state.ip}, not the pinned ${state.expected.join(', ')} — holding requests`);
+    this.log(`[Team Mokea] Egress is ${state.ip}, not the pinned ${state.expected.join(', ')} — holding requests`);
     while (Date.now() - started < this.holdMs) {
       if (isAborted()) return { ...state, waitedMs: Date.now() - started };
       await new Promise(resolve => setTimeout(resolve, this.pollMs));
       state = await this.check({ force: true });
       if (state.ok) {
         const waitedMs = Date.now() - started;
-        this.log(`[TeamClaude] Egress back on ${state.ip} after ${Math.round(waitedMs / 1000)}s`);
+        this.log(`[Team Mokea] Egress back on ${state.ip} after ${Math.round(waitedMs / 1000)}s`);
         return { ...state, waitedMs };
       }
     }

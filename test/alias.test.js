@@ -5,15 +5,15 @@ import { existsSync, writeFileSync, chmodSync, statSync, readdirSync } from 'nod
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { aliasLine, rcPathForShell, teamclaudeRef, installAlias, uninstallAlias } from '../src/alias.js';
+import { aliasLine, rcPathForShell, teamMokeaRef, installAlias, uninstallAlias } from '../src/alias.js';
 
 test('aliasLine uses the right syntax per shell (explicit ref)', () => {
-  assert.equal(aliasLine('bash', 'teamclaude'), "alias claude='teamclaude run --'");
-  assert.equal(aliasLine('zsh', 'teamclaude'), "alias claude='teamclaude run --'");
-  assert.equal(aliasLine('fish', 'teamclaude'), "alias claude 'teamclaude run --'");
+  assert.equal(aliasLine('bash', 'team-mokea'), "alias claude='team-mokea run --'");
+  assert.equal(aliasLine('zsh', 'team-mokea'), "alias claude='team-mokea run --'");
+  assert.equal(aliasLine('fish', 'team-mokea'), "alias claude 'team-mokea run --'");
 });
 
-test('aliasLine embeds a quoted absolute path when teamclaude is not on PATH', () => {
+test('aliasLine embeds a quoted absolute path when team-mokea is not on PATH', () => {
   assert.equal(aliasLine('bash', '"/opt/tc/index.js"'), `alias claude='"/opt/tc/index.js" run --'`);
   assert.equal(aliasLine('fish', '"/opt/tc/index.js"'), `alias claude '"/opt/tc/index.js" run --'`);
 });
@@ -44,13 +44,13 @@ test('an alias with a quote and a space in the path runs the script under bash',
   }
 });
 
-test('teamclaudeRef escapes what the shell reads inside double quotes', async () => {
+test('teamMokeaRef escapes what the shell reads inside double quotes', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'tc-path-'));
   const prev = { PATH: process.env.PATH, argv1: process.argv[1] };
   try {
-    process.env.PATH = dir; // no teamclaude on PATH → embed argv[1]
+    process.env.PATH = dir; // no team-mokea on PATH → embed argv[1]
     process.argv[1] = '/opt/we$ird"dir\\x/index.js';
-    assert.equal(teamclaudeRef(), '"/opt/we\\$ird\\"dir\\\\x/index.js"');
+    assert.equal(teamMokeaRef(), '"/opt/we\\$ird\\"dir\\\\x/index.js"');
   } finally {
     process.env.PATH = prev.PATH;
     process.argv[1] = prev.argv1;
@@ -81,30 +81,30 @@ test('install and uninstall replace the rc file whole, keeping its mode', async 
   }
 });
 
-test('teamclaudeRef returns the bare command when it is on PATH', async () => {
+test('teamMokeaRef returns the bare command when it is on PATH', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'tc-path-'));
   const prev = process.env.PATH;
   try {
-    const bin = join(dir, 'teamclaude');
+    const bin = join(dir, 'team-mokea');
     writeFileSync(bin, '#!/bin/sh\n', { mode: 0o755 });
     chmodSync(bin, 0o755);
     process.env.PATH = dir;
-    assert.equal(teamclaudeRef(), 'teamclaude');
+    assert.equal(teamMokeaRef(), 'team-mokea');
   } finally {
     process.env.PATH = prev;
     await rm(dir, { recursive: true, force: true });
   }
 });
 
-test('teamclaudeRef falls back to a quoted absolute path when not on PATH', async () => {
+test('teamMokeaRef falls back to a quoted absolute path when not on PATH', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'tc-path-'));
   const prev = process.env.PATH;
   try {
-    process.env.PATH = dir; // empty dir → no teamclaude
-    const ref = teamclaudeRef();
+    process.env.PATH = dir; // empty dir → no team-mokea
+    const ref = teamMokeaRef();
     assert.match(ref, /^".*"$/);          // quoted
     assert.ok(ref.includes('/'));          // an absolute-ish path, not the bare command
-    assert.notEqual(ref, 'teamclaude');
+    assert.notEqual(ref, 'team-mokea');
   } finally {
     process.env.PATH = prev;
     await rm(dir, { recursive: true, force: true });
@@ -120,7 +120,7 @@ test('rcPathForShell maps shells to their rc files', () => {
     assert.equal(rcPathForShell('bash'), '/home/u/.bashrc');
     assert.equal(rcPathForShell('zsh'), '/home/u/.zshrc');
     assert.equal(rcPathForShell('sh'), '/home/u/.profile');
-    assert.equal(rcPathForShell('fish'), '/home/u/.config/fish/conf.d/teamclaude.fish');
+    assert.equal(rcPathForShell('fish'), '/home/u/.config/fish/conf.d/team-mokea.fish');
   } finally {
     process.env.HOME = prevHome;
     if (prevXdg === undefined) delete process.env.XDG_CONFIG_HOME;
@@ -136,7 +136,7 @@ test('install adds the alias, is idempotent, and uninstall removes it cleanly', 
     installAlias({ shell: 'bash', rcPath });
     let text = await readFile(rcPath, 'utf8');
     assert.match(text, /alias claude=.*run --/);
-    assert.ok(text.includes('# teamclaude alias'));
+    assert.ok(text.includes('# team-mokea alias'));
     assert.ok(text.includes('# existing user content')); // preserved
 
     // Idempotent: a second install doesn't duplicate the line.
@@ -148,7 +148,7 @@ test('install adds the alias, is idempotent, and uninstall removes it cleanly', 
     uninstallAlias({ shell: 'bash', rcPath });
     text = await readFile(rcPath, 'utf8');
     assert.ok(!text.includes('alias claude='));
-    assert.ok(!text.includes('# teamclaude alias'));
+    assert.ok(!text.includes('# team-mokea alias'));
     assert.ok(text.includes('export FOO=1'));
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -159,13 +159,13 @@ test('uninstall removes our block even if the embedded path differs', async () =
   const dir = await mkdtemp(join(tmpdir(), 'tc-alias-'));
   const rcPath = join(dir, '.bashrc');
   // Simulate a previously-installed alias with an absolute path that no longer
-  // matches what teamclaudeRef() would compute now.
-  await writeFile(rcPath, 'export FOO=1\n# teamclaude alias\nalias claude=\'"/old/path/index.js" run --\'\n');
+  // matches what teamMokeaRef() would compute now.
+  await writeFile(rcPath, 'export FOO=1\n# team-mokea alias\nalias claude=\'"/old/path/index.js" run --\'\n');
   try {
     uninstallAlias({ shell: 'bash', rcPath });
     const text = await readFile(rcPath, 'utf8');
     assert.ok(!text.includes('alias claude='));
-    assert.ok(!text.includes('# teamclaude alias'));
+    assert.ok(!text.includes('# team-mokea alias'));
     assert.ok(text.includes('export FOO=1'));
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -174,7 +174,7 @@ test('uninstall removes our block even if the embedded path differs', async () =
 
 test('uninstall of a dedicated fish drop-file removes the file when empty', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'tc-alias-'));
-  const rcPath = join(dir, 'teamclaude.fish');
+  const rcPath = join(dir, 'team-mokea.fish');
   try {
     installAlias({ shell: 'fish', rcPath });
     assert.ok(existsSync(rcPath));

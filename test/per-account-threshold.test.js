@@ -68,7 +68,7 @@ test('an account bare number wins outright over a fleet-wide table', () => {
 // ── invalid values fall back, exactly like the fleet's own tolerant rule ──
 //
 // switchThreshold has never had a hard config-load-time validator (only the
-// `teamclaude threshold` CLI refuses a bad number, and that refusal never
+// `team-mokea threshold` CLI refuses a bad number, and that refusal never
 // reaches the config file — see thresholdRatio in index.js). A malformed
 // fleet value already falls back to DEFAULT_SWITCH_THRESHOLD rather than
 // crashing or gating on NaN; the per-account override falls back the same
@@ -234,7 +234,7 @@ test('a table keeps its in-range entries and reports the rest by field', async (
 
 test('the account name in the refusal line cannot forge a second log line', async () => {
   const lines = await logged(() => {
-    new AccountManager([oauth('evil\n[TeamClaude] forged', { switchThreshold: 98 })], 0.98);
+    new AccountManager([oauth('evil\n[Team Mokea] forged', { switchThreshold: 98 })], 0.98);
   });
   const about = lines.filter(l => l.includes('switchThreshold'));
   assert.equal(about.length, 1);

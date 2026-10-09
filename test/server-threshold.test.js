@@ -6,12 +6,12 @@ import { join } from 'node:path';
 import { AccountManager } from '../src/account-manager.js';
 import { createProxyServer } from '../src/server.js';
 
-// POST /teamclaude/threshold is what the dashboard's "Switch at __ %" control
-// sends, and the headless equivalent of `teamclaude threshold <1-100>`. Unlike
+// POST /team-mokea/threshold is what the dashboard's "Switch at __ %" control
+// sends, and the headless equivalent of `team-mokea threshold <1-100>`. Unlike
 // /switch, which only moves the manager's currentIndex, this is a SETTING: it
 // goes through the config file and a reload applies it, so the two halves —
 // what landed on disk and what the running fleet now uses — are asserted
-// separately throughout. Every test points TEAMCLAUDE_CONFIG at a throwaway
+// separately throughout. Every test points TEAM_MOKEA_CONFIG at a throwaway
 // file, so the operator's real config is never touched.
 
 function listen(server) {
@@ -24,7 +24,7 @@ const ACCTS = [
 ];
 
 async function writeConfig(extra = {}) {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-http-threshold-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-http-threshold-'));
   const path = join(dir, 'config.json');
   await writeFile(path, JSON.stringify({
     proxy: { port: 3, apiKey: 'tc-test' },
@@ -40,7 +40,7 @@ async function readStored(path) {
 }
 
 async function post(port, body) {
-  const res = await fetch(`http://127.0.0.1:${port}/teamclaude/threshold`, {
+  const res = await fetch(`http://127.0.0.1:${port}/team-mokea/threshold`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body,
@@ -55,8 +55,8 @@ async function post(port, body) {
  */
 async function withServer(fn, { configExtra = {}, reload, proxy = { apiKey: 'tc-test' } } = {}) {
   const path = await writeConfig(configExtra);
-  const previous = process.env.TEAMCLAUDE_CONFIG;
-  process.env.TEAMCLAUDE_CONFIG = path;
+  const previous = process.env.TEAM_MOKEA_CONFIG;
+  process.env.TEAM_MOKEA_CONFIG = path;
   const reloads = { count: 0 };
   const am = new AccountManager(ACCTS, 0.98);
   const hooks = reload === null ? {} : {
@@ -68,8 +68,8 @@ async function withServer(fn, { configExtra = {}, reload, proxy = { apiKey: 'tc-
     await fn({ port, path, reloads, am });
   } finally {
     server.close();
-    if (previous === undefined) delete process.env.TEAMCLAUDE_CONFIG;
-    else process.env.TEAMCLAUDE_CONFIG = previous;
+    if (previous === undefined) delete process.env.TEAM_MOKEA_CONFIG;
+    else process.env.TEAM_MOKEA_CONFIG = previous;
   }
 }
 
@@ -196,7 +196,7 @@ test('a server with no reload hook refuses up front and writes nothing', async (
 // proxy key is the operator's own and stays allowed, as does the key-exempt
 // loopback caller every other test here uses.
 test('a client key is refused; the shared proxy key is not', async () => {
-  const send = (port, key) => fetch(`http://127.0.0.1:${port}/teamclaude/threshold`, {
+  const send = (port, key) => fetch(`http://127.0.0.1:${port}/team-mokea/threshold`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': key },
     body: JSON.stringify({ percent: 50 }),
@@ -223,7 +223,7 @@ test('a client key is refused; the shared proxy key is not', async () => {
 
 test('the endpoint answers only to POST', async () => {
   await withServer(async ({ port }) => {
-    const res = await fetch(`http://127.0.0.1:${port}/teamclaude/threshold`);
+    const res = await fetch(`http://127.0.0.1:${port}/team-mokea/threshold`);
     // An unclaimed control route: the server's catch-all, not a method error.
     assert.equal(res.status, 404);
   });

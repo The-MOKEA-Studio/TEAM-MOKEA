@@ -198,7 +198,7 @@ function modelsRowFor(am, name) {
   const out = renderStatus(am.getStatus(), { color: false, now: Date.now() });
   const lines = out.split('\n');
   // The account HEADER, not the first line containing the name: a bare
-  // `includes(name)` also matches the "TeamClaude status" banner.
+  // `includes(name)` also matches the "Team Mokea status" banner.
   const at = lines.findIndex(l => l.startsWith(`> ${name} (`));
   assert.ok(at >= 0, `account ${name} has no header line in the rendered output`);
   const row = lines.slice(at, at + 12).find(l => l.includes('Models'));

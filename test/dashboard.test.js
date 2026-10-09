@@ -255,7 +255,7 @@ test('the switch button\'s request passes the same-origin gate and moves the cur
   const proxy = createProxyServer(am, { proxy: { apiKey: 'secret' }, upstream: 'http://127.0.0.1:9' });
   const port = await listen(proxy);
   const origin = `http://127.0.0.1:${port}`;
-  const status = async () => (await fetch(`${origin}/teamclaude/status`, { headers: { 'x-api-key': 'secret' } })).json();
+  const status = async () => (await fetch(`${origin}/team-mokea/status`, { headers: { 'x-api-key': 'secret' } })).json();
   try {
     assert.equal((await status()).currentAccount, 'a');
 
@@ -285,8 +285,8 @@ test('the dashboard exposes reload and one-shot probe controls', () => {
   const html = renderDashboardHtml();
   assert.match(html, /id="reload"/);
   assert.match(html, /id="probe"/);
-  assert.match(html, /\/teamclaude\/reload/);
-  assert.match(html, /\/teamclaude\/probe/);
+  assert.match(html, /\/team-mokea\/reload/);
+  assert.match(html, /\/team-mokea\/probe/);
 });
 
 test('the probe control invokes the server hook', async () => {
@@ -297,7 +297,7 @@ test('the probe control invokes the server hook', async () => {
   });
   const port = await listen(proxy);
   try {
-    const res = await fetch(`http://127.0.0.1:${port}/teamclaude/probe`, {
+    const res = await fetch(`http://127.0.0.1:${port}/team-mokea/probe`, {
       method: 'POST', headers: { origin: `http://127.0.0.1:${port}`, 'sec-fetch-site': 'same-origin' },
     });
     assert.deepEqual(await res.json(), { ok: true });
@@ -307,7 +307,7 @@ test('the probe control invokes the server hook', async () => {
   }
 });
 
-// The shape /teamclaude/status reports per route: the server's own target for
+// The shape /team-mokea/status reports per route: the server's own target for
 // the family, and every account with whether it could serve it.
 const ROUTED = {
   currentAccount: 'a',
@@ -559,7 +559,7 @@ test('only the account states that need a person are reported', () => {
 
 test('overage spend is not a banner line', () => {
   // usedMinor is month-to-date, so once overage is switched on this would be lit
-  // for most of the month. The account card and `teamclaude status` carry it,
+  // for most of the month. The account card and `team-mokea status` carry it,
   // with the amount, which the banner did not.
   assert.deepEqual(problems(fleetStatus(am => { am.accounts[0].quota.spend = { enabled: true, usedMinor: 250 }; })), []);
 });
@@ -649,7 +649,7 @@ test('thresholdOutcome says when one number replaced a per-bucket table', () => 
 
 test('thresholdRequest posts the number to the control endpoint with the key', () => {
   const r = thresholdRequest(91.5, 'secret');
-  assert.equal(r.url, '/teamclaude/threshold');
+  assert.equal(r.url, '/team-mokea/threshold');
   assert.equal(r.init.method, 'POST');
   assert.equal(r.init.headers['x-api-key'], 'secret');
   assert.equal(r.init.body, '{"percent":91.5}');
@@ -710,8 +710,8 @@ function bootPage({ storedKey = null, storedTheme = null } = {}) {
   };
   const byId = id => { if (!els.has(id)) els.set(id, stubEl()); return els.get(id); };
   const store = new Map([
-    ...(storedKey ? [['teamclaude-dashboard-key', storedKey]] : []),
-    ...(storedTheme ? [['teamclaude-dashboard-theme', storedTheme]] : []),
+    ...(storedKey ? [['team-mokea-dashboard-key', storedKey]] : []),
+    ...(storedTheme ? [['team-mokea-dashboard-theme', storedTheme]] : []),
   ]);
   const localStorage = {
     getItem: k => (store.has(k) ? store.get(k) : null),
@@ -755,7 +755,7 @@ function bootPage({ storedKey = null, storedTheme = null } = {}) {
 test('the page polls status before asking for a key, so a key-exempt browser is never prompted', async () => {
   const page = bootPage();
   assert.equal(page.requests.length, 1, 'polls on load with no stored key');
-  assert.equal(page.requests[0].url, '/teamclaude/status');
+  assert.equal(page.requests[0].url, '/team-mokea/status');
   assert.equal(page.requests[0].init.headers['x-api-key'], '');
   assert.notEqual(page.byId('keybox').style.display, 'block', 'no prompt before the server answers');
 
@@ -792,10 +792,10 @@ test('dashboard page is self-contained: no external resources', () => {
   assert.doesNotMatch(html, /href\s*=\s*["']https?:/i);
   assert.doesNotMatch(html, /@import/i);
   // The data fetch targets the gated status endpoint, same origin.
-  assert.match(html, /fetch\('\/teamclaude\/status'/);
+  assert.match(html, /fetch\('\/team-mokea\/status'/);
 });
 
-test('GET /teamclaude/dashboard serves HTML without a key; other methods are a local 404', async () => {
+test('GET /team-mokea/dashboard serves HTML without a key; other methods are a local 404', async () => {
   let upstreamHits = 0;
   const upstream = http.createServer((req, res) => {
     upstreamHits++;
@@ -807,11 +807,11 @@ test('GET /teamclaude/dashboard serves HTML without a key; other methods are a l
   const proxy = createProxyServer(am, { proxy: { apiKey: 'secret' }, upstream: `http://127.0.0.1:${upstreamPort}` });
   const port = await listen(proxy);
   try {
-    const page = await fetch(`http://127.0.0.1:${port}/teamclaude/dashboard`);
+    const page = await fetch(`http://127.0.0.1:${port}/team-mokea/dashboard`);
     assert.equal(page.status, 200);
     assert.match(page.headers.get('content-type'), /text\/html/);
     const html = await page.text();
-    assert.match(html, /TeamClaude/);
+    assert.match(html, /Team Mokea/);
 
     // The page keeps the proxy key in localStorage, so it ships with a policy
     // that lets nothing load from anywhere and admits only its own script —
@@ -838,9 +838,9 @@ test('GET /teamclaude/dashboard serves HTML without a key; other methods are a l
     // NOT hit the dashboard handler. It used to flow on to the forwarder and
     // reach the upstream under a fleet credential; an unclaimed path under the
     // proxy's own prefix is now answered here (#420).
-    const post = await fetch(`http://127.0.0.1:${port}/teamclaude/dashboard`, { method: 'POST' });
+    const post = await fetch(`http://127.0.0.1:${port}/team-mokea/dashboard`, { method: 'POST' });
     assert.equal(post.status, 404);
-    assert.match((await post.json()).error, /unknown teamclaude control route/);
+    assert.match((await post.json()).error, /unknown team-mokea control route/);
     assert.equal(upstreamHits, 0);
   } finally {
     proxy.close();
@@ -862,7 +862,7 @@ test('the theme starts from what was stored, and system means no attribute', () 
 test('the theme button cycles system -> light -> dark and persists each step', () => {
   const page = bootPage();
   const click = () => page.byId('theme').fire('click');
-  const stored = () => page.store.get('teamclaude-dashboard-theme');
+  const stored = () => page.store.get('team-mokea-dashboard-theme');
 
   assert.equal(page.byId('theme').textContent, 'Theme: system');
   assert.equal(stored(), undefined, 'following the system stores nothing');
@@ -888,9 +888,9 @@ test('a stored dark choice survives a reload', () => {
   const first = bootPage();
   first.byId('theme').fire('click');
   first.byId('theme').fire('click');
-  assert.equal(first.store.get('teamclaude-dashboard-theme'), 'dark');
+  assert.equal(first.store.get('team-mokea-dashboard-theme'), 'dark');
   // A fresh page with that storage comes up dark without another click.
-  const reloaded = bootPage({ storedTheme: first.store.get('teamclaude-dashboard-theme') });
+  const reloaded = bootPage({ storedTheme: first.store.get('team-mokea-dashboard-theme') });
   assert.equal(reloaded.rootAttrs.get('data-theme'), 'dark');
   assert.equal(reloaded.byId('theme').textContent, 'Theme: dark');
 });
@@ -899,7 +899,7 @@ test('accountControlRequest picks the endpoint and body from the spec', () => {
   // A relative move sends `place` and no number: the caller has buttons, not a
   // number field, and the server is the one that knows the other priorities.
   const first = accountControlRequest('a@x.com', { place: 'first' }, 'k');
-  assert.equal(first.url, '/teamclaude/priority');
+  assert.equal(first.url, '/team-mokea/priority');
   assert.deepEqual(JSON.parse(first.init.body), { account: 'a@x.com', place: 'first' });
   assert.equal(first.init.headers['x-api-key'], 'k');
 
@@ -909,10 +909,10 @@ test('accountControlRequest picks the endpoint and body from the spec', () => {
   // disabled:false is a real value, not an absent one — it must still route to
   // the disable endpoint rather than being read as a priority change.
   const off = accountControlRequest('a@x.com', { disabled: true }, 'k');
-  assert.equal(off.url, '/teamclaude/disable');
+  assert.equal(off.url, '/team-mokea/disable');
   assert.deepEqual(JSON.parse(off.init.body), { account: 'a@x.com', disabled: true });
   const on = accountControlRequest('a@x.com', { disabled: false }, 'k');
-  assert.equal(on.url, '/teamclaude/disable');
+  assert.equal(on.url, '/team-mokea/disable');
   assert.deepEqual(JSON.parse(on.init.body), { account: 'a@x.com', disabled: false });
 
   // No key configured is not an error here; the server decides.

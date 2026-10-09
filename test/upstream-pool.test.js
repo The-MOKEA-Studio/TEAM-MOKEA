@@ -70,7 +70,7 @@ test('twelve long-lived streams receive headers without waiting for another stre
 // (with the headers deadline armed only then) when a stream ahead of it ends.
 // None of the refused requests ever reach the server.
 test('upstream queue is bounded, cancellable, separately timed, and recovers on stream release', async t => {
-  const keys = ['TEAMCLAUDE_UPSTREAM_MAX_SOCKETS', 'TEAMCLAUDE_UPSTREAM_MAX_QUEUE'];
+  const keys = ['TEAM_MOKEA_UPSTREAM_MAX_SOCKETS', 'TEAM_MOKEA_UPSTREAM_MAX_QUEUE'];
   const saved = keys.map(k => process.env[k]);
   process.env[keys[0]] = '1'; process.env[keys[1]] = '1';
   t.after(() => keys.forEach((k, i) => { if (saved[i] === undefined) delete process.env[k]; else process.env[k] = saved[i]; }));
@@ -87,9 +87,9 @@ test('upstream queue is bounded, cancellable, separately timed, and recovers on 
   const ac = new AbortController();
   const cancel = limited(`${base}/cancel`, { signal: ac.signal });
   const cancelled = assert.rejects(cancel, { name: 'AbortError' });
-  await assert.rejects(limited(`${base}/overflow`), { code: 'TEAMCLAUDE_UPSTREAM_OVERLOADED' });
+  await assert.rejects(limited(`${base}/overflow`), { code: 'TEAM_MOKEA_UPSTREAM_OVERLOADED' });
   ac.abort(); await cancelled;
-  await assert.rejects(limited(`${base}/expired`, { queueTimeoutMs: 25 }), { code: 'TEAMCLAUDE_UPSTREAM_OVERLOADED' });
+  await assert.rejects(limited(`${base}/expired`, { queueTimeoutMs: 25 }), { code: 'TEAM_MOKEA_UPSTREAM_OVERLOADED' });
   // Queueing for longer than the headers deadline must not consume it: the
   // deadline is armed at admission. Armed at enqueue instead, it would fire
   // while the request is still queued, whatever the machine is doing; armed
@@ -105,11 +105,11 @@ test('upstream queue is bounded, cancellable, separately timed, and recovers on 
 // than MAX_SOCKETS connections per origin) and the queued remainder drains
 // once the first batch completes.
 test('configured pool bounds reconnect fan-out and drains queued work', async (t) => {
-  const old = process.env.TEAMCLAUDE_UPSTREAM_MAX_SOCKETS;
-  process.env.TEAMCLAUDE_UPSTREAM_MAX_SOCKETS = '8';
+  const old = process.env.TEAM_MOKEA_UPSTREAM_MAX_SOCKETS;
+  process.env.TEAM_MOKEA_UPSTREAM_MAX_SOCKETS = '8';
   const { upstreamFetch: boundedFetch } = await import('../src/upstream-fetch.js?bounded-test');
-  if (old === undefined) delete process.env.TEAMCLAUDE_UPSTREAM_MAX_SOCKETS;
-  else process.env.TEAMCLAUDE_UPSTREAM_MAX_SOCKETS = old;
+  if (old === undefined) delete process.env.TEAM_MOKEA_UPSTREAM_MAX_SOCKETS;
+  else process.env.TEAM_MOKEA_UPSTREAM_MAX_SOCKETS = old;
   let active = 0;
   let peak = 0;
   let release;

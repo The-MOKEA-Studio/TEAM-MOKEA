@@ -10,8 +10,8 @@ import { upstreamFetch } from '../src/upstream-fetch.js';
 
 test.afterEach(() => resetUpstreamProxy());
 
-// The shape of the bug: `teamclaude env` exports HTTPS_PROXY pointing at
-// TeamClaude, so a server or CLI started from that shell proxies itself. The
+// The shape of the bug: `team-mokea env` exports HTTPS_PROXY pointing at
+// Team Mokea, so a server or CLI started from that shell proxies itself. The
 // call succeeds against whichever account the proxy happens to select, which is
 // why it never surfaced as an error — a usage probe just reports the active
 // account's quota under every account.
@@ -57,8 +57,8 @@ test('a wildcard bind still recognises loopback as itself', () => {
 test('the listener follows the same expression the server binds with', () => {
   assert.deepEqual(localListener({ proxy: { port: 3456 } }, {}), { host: '127.0.0.1', port: 3456 });
   assert.deepEqual(localListener({ proxy: { port: 3456, host: '0.0.0.0' } }, {}), { host: '0.0.0.0', port: 3456 });
-  // TEAMCLAUDE_HOST overrides the config, exactly as serverCommand reads it.
-  assert.deepEqual(localListener({ proxy: { port: 3456, host: '0.0.0.0' } }, { TEAMCLAUDE_HOST: '127.0.0.1' }),
+  // TEAM_MOKEA_HOST overrides the config, exactly as serverCommand reads it.
+  assert.deepEqual(localListener({ proxy: { port: 3456, host: '0.0.0.0' } }, { TEAM_MOKEA_HOST: '127.0.0.1' }),
     { host: '127.0.0.1', port: 3456 });
 });
 
@@ -95,7 +95,7 @@ function listen(server) {
   return new Promise(resolve => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
 }
 
-// Stands in for TeamClaude's own listener: it would happily tunnel for us, and
+// Stands in for Team Mokea's own listener: it would happily tunnel for us, and
 // every byte would come back through the account-rewriting request path.
 function connectProxy() {
   const targets = [];

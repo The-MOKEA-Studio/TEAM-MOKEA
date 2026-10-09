@@ -29,7 +29,7 @@ import { envVar } from './brand.js';
 // connections have no application-layer flow control: each upload fills its own
 // socket at TCP speed, exactly like N direct Claude Code processes. maxSockets is
 // per-origin and bounds the fan-out. Escape hatch:
-// TEAMCLAUDE_UPSTREAM_GLOBAL_FETCH=1 reverts to the old global-fetch path.
+// TEAM_MOKEA_UPSTREAM_GLOBAL_FETCH=1 reverts to the old global-fetch path.
 export const DEFAULT_UPSTREAM_MAX_SOCKETS = 256;
 const MAX_SOCKETS = positiveInt(envVar('UPSTREAM_MAX_SOCKETS'), DEFAULT_UPSTREAM_MAX_SOCKETS);
 
@@ -39,10 +39,10 @@ const MAX_SOCKETS = positiveInt(envVar('UPSTREAM_MAX_SOCKETS'), DEFAULT_UPSTREAM
 // a socket — so a client that had already gone away kept its (megabyte) body
 // retained until a long-lived stream ahead of it ended. Requests are admitted
 // here, per origin, BEFORE the ClientRequest exists: the queue is bounded
-// (TEAMCLAUDE_UPSTREAM_MAX_QUEUE), the wait is bounded
-// (TEAMCLAUDE_UPSTREAM_QUEUE_TIMEOUT_MS), and a caller whose signal aborts
+// (TEAM_MOKEA_UPSTREAM_MAX_QUEUE), the wait is bounded
+// (TEAM_MOKEA_UPSTREAM_QUEUE_TIMEOUT_MS), and a caller whose signal aborts
 // leaves the queue immediately. A request the gate turns away fails with
-// TEAMCLAUDE_UPSTREAM_OVERLOADED, which server.js answers with a 503 and no
+// TEAM_MOKEA_UPSTREAM_OVERLOADED, which server.js answers with a 503 and no
 // account rotation: the proxy is saturated, not the account. The limit is
 // MAX_SOCKETS itself, so an admitted request always finds a pooled socket
 // free (a permit is held until the response body ends or is dropped).
@@ -108,7 +108,7 @@ const USE_GLOBAL_FETCH = /^(1|true|yes|on)$/i.test(envVar('UPSTREAM_GLOBAL_FETCH
 // `defaultHeadersTimeoutMs`, which is how the forward path applies the
 // provider's default (provider.js — a Codex response head is held open while
 // the model reasons). Order, most specific first: the per-call
-// `headersTimeoutMs`, then TEAMCLAUDE_UPSTREAM_HEADERS_TIMEOUT_MS (the
+// `headersTimeoutMs`, then TEAM_MOKEA_UPSTREAM_HEADERS_TIMEOUT_MS (the
 // operator's fleet-wide override), then the caller's default, then this one.
 export const DEFAULT_HEADERS_TIMEOUT_MS = 120_000;
 
@@ -127,7 +127,7 @@ function headersTimeoutError(ms) {
   const err = /** @type {CodedError} */ (new Error(`upstream response headers timed out after ${ms}ms`));
   // Recognized by server.js isTransient → fail fast + let the client retry, so
   // Node's fetch pool evicts the stale connection instead of wedging.
-  err.code = 'TEAMCLAUDE_HEADERS_TIMEOUT';
+  err.code = 'TEAM_MOKEA_HEADERS_TIMEOUT';
   return err;
 }
 
@@ -157,7 +157,7 @@ export function upstreamFetch(url, opts = {}, sx = null, useProxy = false) {
 }
 
 /**
- * `fetch` for teamclaude's own control-plane calls — OAuth token exchange and
+ * `fetch` for team-mokea's own control-plane calls — OAuth token exchange and
  * refresh, profile, usage. Identical to global fetch when no upstream proxy is
  * configured; tunneled through it when one is.
  *
@@ -266,7 +266,7 @@ async function nodeRequest(u, opts, timeoutMs, { transport, agent }) {
     forget();
     if (opts.signal?.aborted) throw opts.signal.reason ?? new Error('aborted');
     const err = /** @type {CodedError} */ (new Error(`upstream admission queue for ${u.origin} is full or its wait deadline passed`));
-    err.code = 'TEAMCLAUDE_UPSTREAM_OVERLOADED';
+    err.code = 'TEAM_MOKEA_UPSTREAM_OVERLOADED';
     throw err;
   }
   // Idempotent: the permit is released on whichever of the response's end,

@@ -34,7 +34,7 @@ async function withServer(config, fn) {
 // exactly what the browser would have sent.
 function get(port, headers) {
   return new Promise((resolve, reject) => {
-    const req = http.request({ host: '127.0.0.1', port, path: '/teamclaude/status', headers }, (res) => {
+    const req = http.request({ host: '127.0.0.1', port, path: '/team-mokea/status', headers }, (res) => {
       let body = '';
       res.on('data', (c) => { body += c; });
       res.on('end', () => resolve({ status: res.statusCode, body }));
@@ -86,7 +86,7 @@ test('an HTTP/1.0 request with no Host header is still served', async () => {
   await withServer({}, async (port) => {
     const sock = net.connect(port, '127.0.0.1');
     await once(sock, 'connect');
-    sock.write('GET /teamclaude/status HTTP/1.0\r\n\r\n');
+    sock.write('GET /team-mokea/status HTTP/1.0\r\n\r\n');
     let raw = '';
     sock.on('data', (c) => { raw += c; });
     await once(sock, 'close');

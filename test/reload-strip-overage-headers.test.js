@@ -4,13 +4,13 @@ import http from 'node:http';
 import { writeFile, readFile } from 'node:fs/promises';
 import { spawnServer } from '../test-helpers/spawn-server.js';
 
-// Live reload (POST /teamclaude/reload → reloadAccounts) must hot-apply
+// Live reload (POST /team-mokea/reload → reloadAccounts) must hot-apply
 // `stripOverageHeaders`. server.js samples the flag off the shared config
 // object when each request is dispatched, so a reload that did not copy it
 // from disk would leave the running server on its startup value while every
 // unit test in overage-headers.test.js stayed green. Same harness as
 // reload-event-logging-blocklist.test.js: the real server as a subprocess
-// against a throwaway TEAMCLAUDE_CONFIG, with a stub upstream that answers
+// against a throwaway TEAM_MOKEA_CONFIG, with a stub upstream that answers
 // /v1/messages with one overage header and one plan-quota header.
 
 const OVERAGE = 'anthropic-ratelimit-unified-overage-disabled-reason';
@@ -37,7 +37,7 @@ async function editConfig(configPath, mutate) {
 }
 
 async function reload(proxyPort) {
-  const res = await fetch(`http://127.0.0.1:${proxyPort}/teamclaude/reload`, { method: 'POST', signal: AbortSignal.timeout(10_000) });
+  const res = await fetch(`http://127.0.0.1:${proxyPort}/team-mokea/reload`, { method: 'POST', signal: AbortSignal.timeout(10_000) });
   const text = await res.text();
   assert.equal(res.status, 200, text);
   assert.equal(JSON.parse(text).ok, true, text);

@@ -25,7 +25,7 @@ const HOUR = 3600_000;
 const account = (name) => ({ name, type: 'oauth', accessToken: `t-${name}`, refreshToken: 'r', expiresAt: Date.now() + HOUR });
 const tokenOf = (req) => (req.headers.authorization || '').replace(/^Bearer /, '');
 
-const DELAY_ENV = 'TEAMCLAUDE_HEADERLESS_429_RETRY_DELAY_MS';
+const DELAY_ENV = 'TEAM_MOKEA_HEADERLESS_429_RETRY_DELAY_MS';
 
 // Shorten the retry's wait so these tests do not sit through the shipped 2s,
 // and put it back afterwards — the no-sibling test below measures the default.
@@ -129,7 +129,7 @@ test('a headerless 429 that clears on the retry is never shown to the client', a
       assert.equal(r.status, 200, 'the retry succeeded, so the client gets the answer rather than the 429');
       assert.deepEqual(seen, ['t-a', 't-b', 't-b'], 'the retry stayed on the account the hop landed on');
       assert.ok(r.ms >= RETRY_DELAY_MS - 50,
-        `the retry was sent after ${r.ms}ms — it must wait, and TEAMCLAUDE_HEADERLESS_429_RETRY_DELAY_MS must be what it waits`);
+        `the retry was sent after ${r.ms}ms — it must wait, and TEAM_MOKEA_HEADERLESS_429_RETRY_DELAY_MS must be what it waits`);
     }, clearsOnThirdAttempt);
   } finally { restore(); }
 });

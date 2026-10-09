@@ -116,7 +116,7 @@ test('the dead-token field is part of the account record from construction', () 
   assert.strictEqual(m.accounts[0]._deadRefreshToken, null);
 });
 
-// A config reload or `teamclaude import` can install new tokens WHILE a refresh
+// A config reload or `team-mokea import` can install new tokens WHILE a refresh
 // of the old ones is awaiting upstream. The outcome of that call belongs to the
 // token that was sent, not to whatever the account holds when it lands.
 function deferred() {

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { buildClaudeEnvLines, bypassesAllHosts, clearSelfProxyEnvLines, localLoginHint, mergeNoProxy, resolveClientMode } from '../src/claude-env.js';
 
 test('MITM mode (default) emits proxy vars + CA cert, and clears ANTHROPIC_BASE_URL', () => {
-  const lines = buildClaudeEnvLines({ port: 3456, caPath: '/home/u/.config/teamclaude-ca.pem' });
+  const lines = buildClaudeEnvLines({ port: 3456, caPath: '/home/u/.config/team-mokea-ca.pem' });
   assert.deepEqual(lines, [
     'export HTTPS_PROXY=http://127.0.0.1:3456',
     'export HTTP_PROXY=http://127.0.0.1:3456',
@@ -12,7 +12,7 @@ test('MITM mode (default) emits proxy vars + CA cert, and clears ANTHROPIC_BASE_
     'export http_proxy=http://127.0.0.1:3456',
     "export NO_PROXY='localhost,127.0.0.1,::1'",
     "export no_proxy='localhost,127.0.0.1,::1'",
-    "export NODE_EXTRA_CA_CERTS='/home/u/.config/teamclaude-ca.pem'",
+    "export NODE_EXTRA_CA_CERTS='/home/u/.config/team-mokea-ca.pem'",
     'unset ANTHROPIC_BASE_URL',
   ]);
 });
@@ -20,7 +20,7 @@ test('MITM mode (default) emits proxy vars + CA cert, and clears ANTHROPIC_BASE_
 // NODE_EXTRA_CA_CERTS is a path under $HOME, and $HOME can carry a space or a
 // quote. The line is eval'd, so it has to survive the shell intact.
 test('the CA path is shell-quoted: a space and a quote survive eval', () => {
-  for (const caPath of ['/home/first last/.config/teamclaude-ca.pem', "/home/o'brien/.config/tc-ca.pem", '/h/a b\'c"d$e/ca.pem']) {
+  for (const caPath of ['/home/first last/.config/team-mokea-ca.pem', "/home/o'brien/.config/tc-ca.pem", '/h/a b\'c"d$e/ca.pem']) {
     const lines = buildClaudeEnvLines({ port: 3456, caPath });
     const result = spawnSync('/bin/sh', ['-c', `${lines.join('\n')}\nprintf %s "$NODE_EXTRA_CA_CERTS"`], { encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr);
@@ -71,7 +71,7 @@ test('holdSeconds 0 / unset adds no API_TIMEOUT_MS', () => {
   assert.ok(!lines.some((l) => l.startsWith('export API_TIMEOUT_MS')));
 });
 
-// TC_ACCT parity with `teamclaude run`: the pin must be carried by the routing
+// TC_ACCT parity with `team-mokea run`: the pin must be carried by the routing
 // itself, in whichever form the mode uses, and must not survive into the child.
 test('an account pin rides in the proxy userinfo under MITM', () => {
   const lines = buildClaudeEnvLines({ port: 3456, account: 'work (Acme)', proxyApiKey: 'secret' });

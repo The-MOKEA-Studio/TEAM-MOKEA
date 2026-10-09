@@ -4,12 +4,12 @@ import http from 'node:http';
 import { writeFile, readFile } from 'node:fs/promises';
 import { spawnServer } from '../test-helpers/spawn-server.js';
 
-// Live reload (POST /teamclaude/reload → reloadAccounts) must hot-apply
+// Live reload (POST /team-mokea/reload → reloadAccounts) must hot-apply
 // `eventLogging` and `blockedModels`. server.js reads both per request off the
 // shared config object, and the TUI's own save already persists them, but
 // reloadAccounts never copied them from disk — so a hand edit or any external
 // writer waited for a restart, unlike every other settings-screen field. These
-// drive the real server as a subprocess against a throwaway TEAMCLAUDE_CONFIG;
+// drive the real server as a subprocess against a throwaway TEAM_MOKEA_CONFIG;
 // the stub upstream's hit list is the witness for both gates.
 
 const EVENT_LOG = '/api/event_logging/v2/batch';
@@ -66,14 +66,14 @@ async function editConfig(configPath, mutate) {
 }
 
 async function reload(proxyPort) {
-  const res = await fetch(`http://127.0.0.1:${proxyPort}/teamclaude/reload`, { method: 'POST' });
+  const res = await fetch(`http://127.0.0.1:${proxyPort}/team-mokea/reload`, { method: 'POST' });
   const text = await res.text();
   assert.equal(res.status, 200, text);
   assert.equal(JSON.parse(text).ok, true, text);
 }
 
 async function statusOf(proxyPort) {
-  const res = await fetch(`http://127.0.0.1:${proxyPort}/teamclaude/status`);
+  const res = await fetch(`http://127.0.0.1:${proxyPort}/team-mokea/status`);
   assert.equal(res.status, 200);
   return res.json();
 }
@@ -128,7 +128,7 @@ test('reload hot-applies a blockedModels edit', async () => {
     assert.equal(res.status, 400, JSON.stringify(res.body));
     assert.equal(res.body.type, 'error');
     assert.equal(res.body.error.type, 'invalid_request_error');
-    assert.equal(res.body.error.message, 'Model "claude-zz-blocked" is blocked by teamclaude (matched "*zz-blocked*").');
+    assert.equal(res.body.error.message, 'Model "claude-zz-blocked" is blocked by team-mokea (matched "*zz-blocked*").');
     assert.equal(hits.length, 1, `a blocked model must not be forwarded, but the stub saw ${hits.length} hit(s)`);
 
     // The status echo reads the same live object, so it must agree with the gate.

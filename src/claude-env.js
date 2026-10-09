@@ -1,7 +1,7 @@
 // Percent-encode an account name (or key) for a URL, leaving ONLY the unreserved
 // set. encodeURIComponent alone is not enough here: it passes `( ) ' ! *`
 // through untouched, and these lines are emitted as unquoted shell `export`
-// statements for `eval "$(teamclaude env)"` — a name like "work (Acme)" would be
+// statements for `eval "$(team-mokea env)"` — a name like "work (Acme)" would be
 // a shell syntax error. Clients percent-decode userinfo before using it
 // (verified against Claude Code 2.1.220), so the extra escaping is transparent.
 /**
@@ -86,7 +86,7 @@ export const CLIENT_MODES = ['mitm', 'base-url'];
  * MITM routes every request of the launched client through the proxy, so the
  * hard-coded api.anthropic.com endpoints and the Codex CLI (which honours only
  * proxy variables) are covered. It is also the whole point of the setting: with
- * `eval "$(teamclaude env)"` the proxy variables are shell-wide, and every other
+ * `eval "$(team-mokea env)"` the proxy variables are shell-wide, and every other
  * tool in that shell — gh, git, a package manager — follows them to a listener
  * that only speaks to two hosts (#382). An operator who lives in such a shell
  * sets `defaultClientMode: "base-url"` once and opts back in per launch.
@@ -138,12 +138,12 @@ export function clearSelfProxyEnvLines(port, env = process.env) {
 
 // Build the shell `export` lines that point Claude Code — or any tool that
 // spawns it, e.g. an agent multiplexer — at the proxy. This is the same
-// environment `teamclaude run` sets up, but emitted for `eval "$(teamclaude
+// environment `team-mokea run` sets up, but emitted for `eval "$(team-mokea
 // env)"` instead of launching claude directly. Pure and side-effect free so it
 // can be unit-tested; the caller resolves the port, cert path, holdSeconds and
 // the NO_PROXY the invoking shell already had.
 //
-// MITM (forward-proxy) mode is the default, matching `teamclaude run`: it routes
+// MITM (forward-proxy) mode is the default, matching `team-mokea run`: it routes
 // ALL of claude's traffic through the proxy — even hardcoded api.anthropic.com
 // endpoints (e.g. the design MCP) — with claude trusting our leaf via
 // NODE_EXTRA_CA_CERTS. base-URL mode only redirects the Anthropic base URL and
@@ -153,7 +153,7 @@ export function clearSelfProxyEnvLines(port, env = process.env) {
 // key gate, and setting it would drop Claude Code out of subscription mode (and
 // its full model access). Remote clients that aren't on loopback must add the
 // proxy key themselves.
-// `account` pins the session to one account (TC_ACCT), exactly as `teamclaude
+// `account` pins the session to one account (TC_ACCT), exactly as `team-mokea
 // run` does: in MITM mode it rides in the proxy URL's userinfo and reaches the
 // proxy as the CONNECT's Basic username; in base-URL mode it becomes a
 // `/tc-acct/` prefix. TC_ACCT itself is then unset, so the pin does not leak

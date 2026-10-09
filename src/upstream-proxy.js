@@ -1,4 +1,4 @@
-// Outbound (egress) proxy for everything teamclaude sends to Anthropic.
+// Outbound (egress) proxy for everything team-mokea sends to Anthropic.
 //
 // Distinct from two other things that also say "proxy" in this codebase:
 //   - `config.proxy` is the LOCAL server Claude Code talks to (inbound).
@@ -112,8 +112,8 @@ export function bypassesProxy(hostname, noProxy) {
 
 // ── Self-proxy guard ─────────────────────────────────────────
 //
-// TeamClaude honours HTTPS_PROXY for its own egress, and `teamclaude env`
-// exports HTTPS_PROXY pointing AT TeamClaude (that is how MITM mode aims the
+// Team Mokea honours HTTPS_PROXY for its own egress, and `team-mokea env`
+// exports HTTPS_PROXY pointing AT Team Mokea (that is how MITM mode aims the
 // client). So a server or CLI started from a shell already set up for MITM
 // inherits ITSELF as its egress proxy.
 //

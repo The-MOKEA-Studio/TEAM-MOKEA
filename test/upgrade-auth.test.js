@@ -22,7 +22,7 @@ test('the upgrade gate answers like the other two', () => {
   assert.deepEqual(resolveUpgradeAuth({ headers: { 'x-api-key': 'alice-key' } }, remote, PROXY), { ok: true, client: 'alice' });
   assert.deepEqual(resolveUpgradeAuth({ headers: { 'x-api-key': 'wrong' } }, remote, PROXY), { ok: false, client: null });
   // Loopback is exempt, as it is on the HTTP and CONNECT gates, so a local
-  // `teamclaude attach` keeps working with no key.
+  // `team-mokea attach` keeps working with no key.
   assert.deepEqual(resolveUpgradeAuth({ headers: {} }, sock('127.0.0.1'), PROXY), { ok: true, client: null });
   // A deployment with no keys configured is open by choice, unchanged.
   assert.deepEqual(resolveUpgradeAuth({ headers: {} }, remote, {}), { ok: true, client: null });
@@ -58,7 +58,7 @@ test('a key offered in Sec-WebSocket-Protocol is NOT accepted', () => {
   // trade, and this pins it.
   const remote = sock('203.0.113.7');
   assert.deepEqual(
-    resolveUpgradeAuth({ headers: { 'sec-websocket-protocol': 'teamclaude, alice-key' } }, remote, PROXY),
+    resolveUpgradeAuth({ headers: { 'sec-websocket-protocol': 'team-mokea, alice-key' } }, remote, PROXY),
     { ok: false, client: null });
   assert.deepEqual(
     resolveUpgradeAuth({ headers: { 'sec-websocket-protocol': 'alice-key' } }, remote, PROXY),

@@ -30,7 +30,7 @@ const RESPONSE_LIMIT = 64 * 1024;
  * only when a provider actually reports a 0-1 fraction, so a renderer can draw
  * a bar for it and fall back to text for everything else. `windows` carries the
  * same utilization per machine-readable window when the provider reports
- * distinct ones, so /teamclaude/quota can bucket it; a balance-only provider
+ * distinct ones, so /team-mokea/quota can bucket it; a balance-only provider
  * has none.
  *
  * @typedef {{ utilization: number, resetAt: number|null }} BackendQuotaWindow

@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { closedPort } from '../test-helpers/spawn-server.js';
 
-// `teamclaude login --api` loads the config, waits on the key prompt for as long
+// `team-mokea login --api` loads the config, waits on the key prompt for as long
 // as the user takes, and then saves. A running server may rotate an OAuth
 // account's refresh token on disk in between; saving the copy loaded before the
 // prompt put the OLD token back, dead by then, and that account was lost on its
@@ -33,7 +33,7 @@ const baseConfig = (proxyPort) => ({
 });
 
 async function writeConfig(config) {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-login-api-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-login-api-'));
   const path = join(dir, 'config.json');
   await writeFile(path, JSON.stringify(config));
   return path;
@@ -57,7 +57,7 @@ async function fakeServer(t) {
 
 function runCli(configPath, cliArgs) {
   const child = spawn(process.execPath, [cliPath, ...cliArgs], {
-    env: { ...process.env, TEAMCLAUDE_CONFIG: configPath, TEAMCLAUDE_DISABLE_AUTOUPDATE: '1' },
+    env: { ...process.env, TEAM_MOKEA_CONFIG: configPath, TEAM_MOKEA_DISABLE_AUTOUPDATE: '1' },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
   let stdout = '';
@@ -162,5 +162,5 @@ test('login --api tells a running server to reload once the key is saved', async
   assert.equal(res.code, 0, res.stderr);
   assert.match(res.stdout, /Added API key account "api-test"/);
   assert.match(res.stdout, /Reloaded running server \(\+1 new account\)/);
-  assert.deepEqual(server.seen, [{ method: 'POST', url: '/teamclaude/reload', key: 'tc-test' }]);
+  assert.deepEqual(server.seen, [{ method: 'POST', url: '/team-mokea/reload', key: 'tc-test' }]);
 });

@@ -266,7 +266,7 @@ test('stats reports each family and the total across them', () => {
 
 // ── the status payload ───────────────────────────────────────────────────────
 
-// `teamclaude status --json` is what an operator reads during an incident, and a
+// `team-mokea status --json` is what an operator reads during an incident, and a
 // field that has stopped reading its source is worse than a missing one: it
 // answers confidently and wrongly. Zero is every one of these fields' default,
 // so a fixture that leaves any of them at zero would pass against a constant.

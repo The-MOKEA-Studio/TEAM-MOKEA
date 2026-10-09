@@ -1,4 +1,4 @@
-// Tracks live CONVERSATIONS so teamclaude can (a) report what the fleet is
+// Tracks live CONVERSATIONS so team-mokea can (a) report what the fleet is
 // carrying and (b) optionally keep each conversation pinned to one account
 // while spreading NEW ones across accounts (the opt-in fix for concurrency
 // funnelling — issue #109).

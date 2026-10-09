@@ -7,8 +7,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 // upstream-fetch.js is first evaluated, so the pool is narrowed BEFORE server.js
 // (which imports it) is loaded. A width of one and no queue makes the second
 // concurrent request the overload case.
-process.env.TEAMCLAUDE_UPSTREAM_MAX_SOCKETS = '1';
-process.env.TEAMCLAUDE_UPSTREAM_MAX_QUEUE = '0';
+process.env.TEAM_MOKEA_UPSTREAM_MAX_SOCKETS = '1';
+process.env.TEAM_MOKEA_UPSTREAM_MAX_QUEUE = '0';
 const { AccountManager } = await import('../src/account-manager.js');
 const { createProxyServer } = await import('../src/server.js');
 

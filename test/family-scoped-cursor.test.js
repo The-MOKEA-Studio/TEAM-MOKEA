@@ -149,7 +149,7 @@ test('a route exclusion is model-scoped too: a manual switch to a routed account
     { name: 'claude', match: ['*'], accounts: ['a', 'b'] },
   ];
   const am = fleet([apikey('backend', { priority: 100 })], { manager: { routes } });
-  am.currentIndex = 2; // POST /teamclaude/switch to the backend account
+  am.currentIndex = 2; // POST /team-mokea/switch to the backend account
   assert.equal(am.getActiveAccount(null, 'k3-large').name, 'backend');
   assert.equal(am.getActiveAccount(null, OPUS).name, 'a', 'Opus is routed away');
   assert.equal(am.getActiveAccount(null, 'k3-large').name, 'backend');

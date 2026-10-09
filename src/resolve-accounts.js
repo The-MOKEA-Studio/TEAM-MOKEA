@@ -23,7 +23,7 @@ export async function resolveAccounts(config) {
       // pool an already-signed-in Codex login. A default, not an override: that
       // file holds ONE ChatGPT login, and importing it over an account that has
       // its own credential collapsed every Codex row onto that login, discarding
-      // what `teamclaude login --codex` had stored.
+      // what `team-mokea login --codex` had stored.
       const isCodex = providerOf(acct) === 'codex';
       if (acct.importFrom || (isCodex && !acct.accessToken)) {
         const from = acct.importFrom || (isCodex ? DEFAULT_CODEX_CREDENTIALS_PATH : null);

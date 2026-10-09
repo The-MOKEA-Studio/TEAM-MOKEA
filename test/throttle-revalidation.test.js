@@ -8,7 +8,7 @@ function oauth(name, extra = {}) {
 
 // The scenario these tests guard against (reproduced live in a sandbox): a 429
 // burst throttles every account with a long retry-after hold; the hold lives
-// only in memory and nothing revalidates it, so teamclaude keeps refusing with
+// only in memory and nothing revalidates it, so team-mokea keeps refusing with
 // synthetic 429s even after upstream is healthy again, until a restart wipes
 // the holds. Revalidation lets a live probe clear a stale hold instead.
 

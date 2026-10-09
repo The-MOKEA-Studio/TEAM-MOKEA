@@ -16,7 +16,7 @@ function listen(server) {
 const accounts = (names) => names.map(n => ({ name: n, type: 'apikey', apiKey: `k-${n}` }));
 
 // A fresh name per run, so no resolver cache can answer it from a previous one.
-const unresolvable = () => `http://nx-${Date.now()}-${Math.random().toString(36).slice(2)}-teamclaude.invalid`;
+const unresolvable = () => `http://nx-${Date.now()}-${Math.random().toString(36).slice(2)}-team-mokea.invalid`;
 
 // Behind an ambient proxy a DNS failure never reaches the classification: the
 // proxy resolves the name and reports its own refusal, leaving no resolution

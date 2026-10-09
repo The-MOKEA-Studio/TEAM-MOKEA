@@ -5,7 +5,7 @@ import { syncAccountsFromDisk } from '../src/sync-accounts.js';
 import { markAccountRemoved, markAccountAdded } from '../src/account-pairing.js';
 
 // A reload used to add accounts from disk and never drop any: an operator's
-// `teamclaude remove` from another shell left the account serving until the
+// `team-mokea remove` from another shell left the account serving until the
 // next restart. A running account whose config entry has gone from disk is
 // now removed on reload, from the manager and from the in-memory config.
 

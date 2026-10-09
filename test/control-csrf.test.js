@@ -37,7 +37,7 @@ async function withServer(fn, hooks = {}) {
 }
 
 const switchTo = (port, account, headers = {}) =>
-  fetch(`http://127.0.0.1:${port}/teamclaude/switch`, {
+  fetch(`http://127.0.0.1:${port}/team-mokea/switch`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify({ account }),
@@ -70,7 +70,7 @@ test('Sec-Fetch-Site is honoured when the browser sends it', async () => {
 test('reload is refused cross-origin as well', async () => {
   let reloads = 0;
   await withServer(async (_am, port) => {
-    const res = await fetch(`http://127.0.0.1:${port}/teamclaude/reload`, {
+    const res = await fetch(`http://127.0.0.1:${port}/team-mokea/reload`, {
       method: 'POST',
       headers: { Origin: 'https://evil.example' },
     });
@@ -91,8 +91,8 @@ test('priority and disable are refused cross-origin, before any hook runs', asyn
   };
   await withServer(async (_am, port) => {
     for (const [path, body] of [
-      ['/teamclaude/priority', { account: 'bob@example.com', place: 'first' }],
-      ['/teamclaude/disable', { account: 'bob@example.com', disabled: true }],
+      ['/team-mokea/priority', { account: 'bob@example.com', place: 'first' }],
+      ['/team-mokea/disable', { account: 'bob@example.com', disabled: true }],
     ]) {
       const res = await fetch(`http://127.0.0.1:${port}${path}`, {
         method: 'POST',
@@ -117,7 +117,7 @@ test('priority and disable are refused cross-origin, before any hook runs', asyn
 test('the threshold cannot be set cross-origin', async () => {
   let reloads = 0;
   await withServer(async (_am, port) => {
-    const res = await fetch(`http://127.0.0.1:${port}/teamclaude/threshold`, {
+    const res = await fetch(`http://127.0.0.1:${port}/team-mokea/threshold`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Origin: 'https://evil.example' },
       body: JSON.stringify({ percent: 1 }),
@@ -128,7 +128,7 @@ test('the threshold cannot be set cross-origin', async () => {
   }, { reload: async () => { reloads++; return 0; } });
 });
 
-// The guard is worthless if it also blocks the CLI. curl and teamclaude attach
+// The guard is worthless if it also blocks the CLI. curl and team-mokea attach
 // send neither header.
 test('a request with no browser headers still works', async () => {
   await withServer(async (am, port) => {
@@ -154,7 +154,7 @@ test('a same-origin browser request is allowed through', async () => {
 // page. The same no-cors POST reaches /v1/messages, where the proxy injects a
 // fleet credential — a quota drain, with the page's prompt content booked to
 // the operator — so a key-less loopback request is refused cross-origin on
-// EVERY path, not only under /teamclaude/.
+// EVERY path, not only under /team-mokea/.
 test('a page cannot spend fleet quota through /v1/messages cross-origin', async () => {
   let reached = 0;
   const upstream = http.createServer((_req, res) => {
@@ -196,13 +196,13 @@ test('a page cannot spend fleet quota through /v1/messages cross-origin', async 
 // rather than relied upon to be unreadable.
 test('a key-less cross-origin read of status is refused; a keyed one is served', async () => {
   await withServer(async (_am, port) => {
-    const refused = await fetch(`http://127.0.0.1:${port}/teamclaude/status`, {
+    const refused = await fetch(`http://127.0.0.1:${port}/team-mokea/status`, {
       headers: { Origin: 'https://evil.example' },
     });
     assert.equal(refused.status, 403);
     // A caller that presented a valid key has proven itself; the browser
     // headers no longer matter. (The dashboard polls status this way.)
-    const keyed = await fetch(`http://127.0.0.1:${port}/teamclaude/status`, {
+    const keyed = await fetch(`http://127.0.0.1:${port}/team-mokea/status`, {
       headers: { Origin: 'https://evil.example', 'x-api-key': 'tc-test' },
     });
     assert.equal(keyed.status, 200);

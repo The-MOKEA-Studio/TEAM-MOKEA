@@ -272,7 +272,7 @@ test('stale over-threshold quota is re-probed, not refused forever', async () =>
     [{ name: 'a', type: 'oauth', accessToken: 't', refreshToken: 'r', expiresAt: Date.now() + 3600_000 }],
     0.98,
   );
-  // Simulate restoring a poisoned snapshot from teamclaude.state.json.
+  // Simulate restoring a poisoned snapshot from team-mokea.state.json.
   am.restoreQuotaState([
     { name: 'a', quota: { unified7d: 0.98, unified7dReset: Date.now() + 7 * 24 * 3600_000 } },
   ]);

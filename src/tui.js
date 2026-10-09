@@ -393,7 +393,7 @@ export function blockedFamilies(quota, threshold) {
 }
 
 // Matches THRESHOLD_BUCKET_LABELS in status-renderer.js — same short names on
-// both surfaces, so an operator moving from `teamclaude status` text to the
+// both surfaces, so an operator moving from `team-mokea status` text to the
 // live TUI (or attach mode) sees the identical tag rather than relearning it.
 /** @type {Object<string, string>} */
 const THRESHOLD_TAG_LABELS = {
@@ -693,7 +693,7 @@ export class TUI {
     this._activityStream.on('error', err => {
       // Swallow write errors — can't log them to the TUI without recursion
       this._activityStream = null;
-      process.stderr.write(`[TeamClaude] activity log error: ${err.message}\n`);
+      process.stderr.write(`[Team Mokea] activity log error: ${err.message}\n`);
     });
     return this._activityStream;
   }
@@ -775,7 +775,7 @@ export class TUI {
     if (this._stdoutDead) return;
     this._stdoutDead = true;
     const report = this._origErr || console.error;
-    report(`[TeamClaude] terminal lost (${stream}: ${err?.code || err?.message || err}); ` +
+    report(`[Team Mokea] terminal lost (${stream}: ${err?.code || err?.message || err}); ` +
       (this.remote ? 'closing the attach client' : 'the proxy keeps running without a display'));
     // A failure that arrives after stop() — a write still queued when the
     // operator quit — is only recorded: the exit is already under way.
@@ -899,7 +899,7 @@ export class TUI {
     // The screen copy keeps the colour callers painted on, and only that: a
     // request's model string is repainted from this list every frame for as
     // long as the entry lives, so an escape stored here would fire 200 times.
-    msg = scrubLine(msg).replace(/^\[TeamClaude\]\s*/, '');
+    msg = scrubLine(msg).replace(/^\[Team Mokea\]\s*/, '');
     const t = timestamp();
     this.log.unshift({ t, msg });
     if (this.log.length > 200) this.log.length = 200;
@@ -1494,7 +1494,7 @@ export class TUI {
   // Browser login for the account under the cursor (the `l` key). The row
   // chooses the PROVIDER's sign-in page and tells the operator which identity to
   // sign in as; it does not choose where the tokens go. They go to the account
-  // the browser actually signed in as — the same identity match `teamclaude
+  // the browser actually signed in as — the same identity match `team-mokea
   // login` makes — because writing one person's tokens onto the row that was
   // merely highlighted would be a credential crossing. So a sign-in as someone
   // else is reported as exactly that, and the picked row stays in need of one.
@@ -1780,7 +1780,7 @@ export class TUI {
   }
 
   async _toggleClientMode() {
-    // What `teamclaude run` and `env` do when no --mitm/--no-mitm flag is given.
+    // What `team-mokea run` and `env` do when no --mitm/--no-mitm flag is given.
     // Base-URL keeps a shell's other tools off the proxy (#382); MITM covers the
     // hard-coded endpoints and the Codex CLI. Read from disk by those commands,
     // so the save is the whole application.
@@ -2103,7 +2103,7 @@ export class TUI {
     const lines = [];
 
     // ── Header
-    const left = bold(' TeamClaude');
+    const left = bold(' Team Mokea');
     const port = this.config.proxy?.port || 3456;
     const sess = this.am.sessionStats();
     const sessStr = (sess.active || sess.known)
@@ -2834,7 +2834,7 @@ export class TUI {
     if (byId('sessionTitles')) lines.push(row(byId('sessionTitles')));
     lines.push('');
     // ── Launch
-    lines.push(bold('  Launch') + dim('  — how `teamclaude run` and `env` reach the proxy when no flag says'));
+    lines.push(bold('  Launch') + dim('  — how `team-mokea run` and `env` reach the proxy when no flag says'));
     lines.push(row(byId('clientMode')));
     lines.push('');
     // ── Routing
@@ -2894,7 +2894,7 @@ export class TUI {
     if (!key) {
       lines.push('');
       lines.push(dim('  No sx.org account yet? Signing up via https://sx.org/c/ufVrLW'));
-      lines.push(dim('  costs nothing extra and supports TeamClaude development.'));
+      lines.push(dim('  costs nothing extra and supports Team Mokea development.'));
     }
     return selLine;
   }

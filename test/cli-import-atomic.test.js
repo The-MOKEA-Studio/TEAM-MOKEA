@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// `teamclaude import` (and `login`) load the config, spend a while on the
+// `team-mokea import` (and `login`) load the config, spend a while on the
 // network — a browser flow can take minutes — and then save. A running server
 // may rotate another account's refresh token on disk in between; saving the
 // copy loaded before that put the OLD refresh token back, which is dead by then,
@@ -33,7 +33,7 @@ const baseConfig = (proxyPort) => ({
 });
 
 function runCli(configPath, cliArgs) {
-  const env = { ...process.env, TEAMCLAUDE_CONFIG: configPath };
+  const env = { ...process.env, TEAM_MOKEA_CONFIG: configPath };
   // A NO_PROXY naming api.anthropic.com would send the fetch around the fake
   // proxy — and around the synchronisation point this test is built on.
   delete env.NO_PROXY; delete env.no_proxy;
@@ -52,7 +52,7 @@ function runCli(configPath, cliArgs) {
 }
 
 test('import saves onto a fresh read of the config, not the copy it loaded', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-import-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-import-'));
   const configPath = join(dir, 'config.json');
 
   let connects = 0;

@@ -97,7 +97,7 @@ test('a 403 on the injected credential reaches the client as a proxy error, not 
     assert.equal(status, 502);
     assert.match(body, /proxy_error/);
     assert.match(body, /account \\"a\\"/);             // names the account that was rejected
-    assert.match(body, /teamclaude login/);            // a generic credential refusal still recommends re-auth
+    assert.match(body, /team-mokea login/);            // a generic credential refusal still recommends re-auth
     assert.equal(seen.length, 1);                      // no other account to try
   } finally {
     proxy.close();
@@ -359,7 +359,7 @@ test('an all-entitlement-denied 502 diagnoses policy instead of recommending log
     assert.match(message, /oauth_not_allowed_for_organization/);
     assert.match(message, /"a account"/);
     assert.match(message, /"b account"/);
-    assert.doesNotMatch(message, /teamclaude login/);
+    assert.doesNotMatch(message, /team-mokea login/);
     assert.deepEqual(seen, ['a-token', 'b-token']);
   } finally {
     proxy.close();

@@ -5,7 +5,7 @@ import { AccountManager } from '../src/account-manager.js';
 // getStatus copied each account's quota verbatim and nothing on the read path
 // swept expired windows, so an idle server reported a window whose reset had
 // passed at its old percentage with a timestamp in the past — to `status
-// --json`, to anything scripted against /teamclaude/status, and to the attached
+// --json`, to anything scripted against /team-mokea/status, and to the attached
 // TUI, whose own refresh is a no-op because it trusts the server to do this
 // (#237).
 

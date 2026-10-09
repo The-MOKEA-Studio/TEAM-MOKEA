@@ -1,25 +1,25 @@
 #!/bin/sh
 set -e
 
-if [ -z "$TEAMCLAUDE_SPLIT_STDERR" ]; then
+if [ -z "$TEAM_MOKEA_SPLIT_STDERR" ]; then
     exec 2>&1
 fi
 
 log() {
-    echo "[teamclaude] $*"
+    echo "[team-mokea] $*"
 }
 
 DEFAULT_UID=1000
 DEFAULT_GID=1000
-CONFIG="${TEAMCLAUDE_CONFIG:-/data/teamclaude.json}"
+CONFIG="${TEAM_MOKEA_CONFIG:-/data/team-mokea.json}"
 
 if [ "$(id -u)" != "0" ]; then
     exec "$@"
 fi
 
-if [ -n "$TEAMCLAUDE_UID" ]; then
-    TARGET_UID="$TEAMCLAUDE_UID"
-    TARGET_GID="${TEAMCLAUDE_GID:-$TEAMCLAUDE_UID}"
+if [ -n "$TEAM_MOKEA_UID" ]; then
+    TARGET_UID="$TEAM_MOKEA_UID"
+    TARGET_GID="${TEAM_MOKEA_GID:-$TEAM_MOKEA_UID}"
 elif [ -e "$CONFIG" ]; then
     TARGET_UID="$(stat -c %u "$CONFIG")"
     TARGET_GID="$(stat -c %g "$CONFIG")"

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseAuthCode } from '../src/oauth.js';
 
-// The pasted-code login (`teamclaude login --token`) and the browser flow's
+// The pasted-code login (`team-mokea login --token`) and the browser flow's
 // paste fallback both go through parseAuthCode. Four input shapes, one throw.
 
 test('a full callback URL yields its code and state', () => {

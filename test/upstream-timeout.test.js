@@ -46,7 +46,7 @@ test('fails fast (does not hang) when upstream never sends headers', async () =>
   await assert.rejects(
     () => upstreamFetch(`http://127.0.0.1:${port}/v1/messages`,
       { method: 'POST', body: '{}', headersTimeoutMs: 200 }),
-    (err) => err.code === 'TEAMCLAUDE_HEADERS_TIMEOUT' && /after 200ms/.test(err.message),
+    (err) => err.code === 'TEAM_MOKEA_HEADERS_TIMEOUT' && /after 200ms/.test(err.message),
   );
 
   server.close();
@@ -69,7 +69,7 @@ test('evicts the dead socket and reconnects on the same origin', async () => {
 
   await assert.rejects(
     () => upstreamFetch(origin, { headersTimeoutMs: 150 }),
-    (err) => err.code === 'TEAMCLAUDE_HEADERS_TIMEOUT',
+    (err) => err.code === 'TEAM_MOKEA_HEADERS_TIMEOUT',
   );
 
   mode = 'respond';
@@ -108,7 +108,7 @@ test('does not cut a slow body once headers have arrived', async () => {
 // timeout is disarmed, so a drop DURING the body would hang forever. The
 // body-idle watchdog in streamResponse guards each read. Here the stream yields
 // one chunk then goes silent; the second read must fail fast with a transient
-// TEAMCLAUDE_BODY_TIMEOUT (which server.js treats as retryable) rather than hang.
+// TEAM_MOKEA_BODY_TIMEOUT (which server.js treats as retryable) rather than hang.
 test('body watchdog fails fast when the stream goes silent mid-body', async () => {
   // readWithIdleTimeout's watchdog is unref'd (in production the listening socket
   // keeps the loop alive; here this test has no socket of its own), so hold a
@@ -131,7 +131,7 @@ test('body watchdog fails fast when the stream goes silent mid-body', async () =
     // Second read: the stream is silent, so the watchdog fires fast.
     await assert.rejects(
       () => readWithIdleTimeout(reader, 200),
-      (err) => err.code === 'TEAMCLAUDE_BODY_TIMEOUT' && /idle for 200ms/.test(err.message),
+      (err) => err.code === 'TEAM_MOKEA_BODY_TIMEOUT' && /idle for 200ms/.test(err.message),
     );
   } finally {
     clearInterval(alive);
@@ -166,7 +166,7 @@ test('body watchdog does not fire when chunks keep arriving', async () => {
 
 // The head deadline has four sources, and this is the order they settle in:
 // the per-call `headersTimeoutMs`, the operator's
-// TEAMCLAUDE_UPSTREAM_HEADERS_TIMEOUT_MS, the caller's
+// TEAM_MOKEA_UPSTREAM_HEADERS_TIMEOUT_MS, the caller's
 // `defaultHeadersTimeoutMs` (the forward path passes the account provider's
 // own default there — Codex's head is held open while the model reasons), and
 // finally the fleet default below. The tests that follow pin that order, in
@@ -181,7 +181,7 @@ test('a caller default bounds the head wait when nothing overrides it', async ()
 
   await assert.rejects(
     () => upstreamFetch(`http://127.0.0.1:${port}/`, { defaultHeadersTimeoutMs: 200 }),
-    (err) => err.code === 'TEAMCLAUDE_HEADERS_TIMEOUT' && /after 200ms/.test(err.message),
+    (err) => err.code === 'TEAM_MOKEA_HEADERS_TIMEOUT' && /after 200ms/.test(err.message),
   );
 
   server.close();
@@ -207,18 +207,18 @@ test('a per-call headers timeout wins over the caller default', async () => {
 // caller supplied — otherwise a provider default could not be brought back
 // down on a deployment that wants it shorter.
 test('the env override beats the caller default', async () => {
-  const prev = process.env.TEAMCLAUDE_UPSTREAM_HEADERS_TIMEOUT_MS;
-  process.env.TEAMCLAUDE_UPSTREAM_HEADERS_TIMEOUT_MS = '200';
+  const prev = process.env.TEAM_MOKEA_UPSTREAM_HEADERS_TIMEOUT_MS;
+  process.env.TEAM_MOKEA_UPSTREAM_HEADERS_TIMEOUT_MS = '200';
   const { server, port } = await listen(() => { /* never respond */ });
   try {
     // 200 from the environment, not the caller's 60 s: the message says which.
     await assert.rejects(
       () => upstreamFetch(`http://127.0.0.1:${port}/`, { defaultHeadersTimeoutMs: 60_000 }),
-      (err) => err.code === 'TEAMCLAUDE_HEADERS_TIMEOUT' && /after 200ms/.test(err.message),
+      (err) => err.code === 'TEAM_MOKEA_HEADERS_TIMEOUT' && /after 200ms/.test(err.message),
     );
   } finally {
-    if (prev === undefined) delete process.env.TEAMCLAUDE_UPSTREAM_HEADERS_TIMEOUT_MS;
-    else process.env.TEAMCLAUDE_UPSTREAM_HEADERS_TIMEOUT_MS = prev;
+    if (prev === undefined) delete process.env.TEAM_MOKEA_UPSTREAM_HEADERS_TIMEOUT_MS;
+    else process.env.TEAM_MOKEA_UPSTREAM_HEADERS_TIMEOUT_MS = prev;
     server.close();
   }
 });

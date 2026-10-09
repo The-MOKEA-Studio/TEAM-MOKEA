@@ -4,7 +4,7 @@ Issues and pull requests are welcome. This page says what the project is for, si
 
 ## What the project is for
 
-TeamClaude serves **one person's work**: someone running many coding-agent sessions at once, across several accounts of their own, who needs the switch between accounts to happen without them. The "team" is the agents. [docs/compliance.md](docs/compliance.md) has the full statement.
+Team Mokea serves **one person's work**: someone running many coding-agent sessions at once, across several accounts of their own, who needs the switch between accounts to happen without them. The "team" is the agents. [docs/compliance.md](docs/compliance.md) has the full statement.
 
 That scope applies to every provider the proxy supports — Anthropic, OpenAI/Codex, and third-party backends alike — and to every provider added later.
 

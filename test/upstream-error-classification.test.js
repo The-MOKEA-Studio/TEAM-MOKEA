@@ -15,7 +15,7 @@ const withCode = (code) => Object.assign(new Error(code), { code });
 test('a socket failure is transient whatever else the fleet could dial', () => {
   for (const code of ['ECONNRESET', 'ETIMEDOUT', 'EPIPE', 'UND_ERR_CONNECT_TIMEOUT',
     'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_BODY_TIMEOUT',
-    'TEAMCLAUDE_HEADERS_TIMEOUT', 'TEAMCLAUDE_BODY_TIMEOUT']) {
+    'TEAM_MOKEA_HEADERS_TIMEOUT', 'TEAM_MOKEA_BODY_TIMEOUT']) {
     assert.equal(isTransientUpstreamError(withCode(code)), true, code);
     assert.equal(isTransientUpstreamError(withCode(code), { otherHostAvailable: true }), true,
       `${code} is about this connection, and another host cannot mend a broken one`);

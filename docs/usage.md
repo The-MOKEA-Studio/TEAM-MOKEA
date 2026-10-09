@@ -5,7 +5,7 @@ Running the server, running Claude Code through it, and the full command referen
 ## Start the proxy server
 
 ```bash
-teamclaude server
+team-mokea server
 ```
 
 From a TTY this shows the interactive TUI: an account table with session/weekly quota bars and reset countdowns, a real-time activity log, and keyboard controls.
@@ -16,22 +16,22 @@ It falls back to plain log output when stdout is not a TTY (e.g. running as a se
 
 ### Running in a container
 
-A container image is published to GHCR on every version bump (`ghcr.io/karpeleslab/teamclaude`, tagged `latest`, `1`, `1.1` and the full version). It runs `server --headless` bound to `0.0.0.0` inside the container, so publish the port and bind-mount the config file:
+A container image is published to GHCR on every version bump (`ghcr.io/the-mokea-studio/team-mokea`, tagged `latest`, `1`, `1.1` and the full version). It runs `server --headless` bound to `0.0.0.0` inside the container, so publish the port and bind-mount the config file:
 
 ```bash
-docker run -d --name teamclaude -p 3456:3456 \
-  -v ~/.config/teamclaude.json:/data/teamclaude.json \
-  ghcr.io/karpeleslab/teamclaude:latest
+docker run -d --name team-mokea -p 3456:3456 \
+  -v ~/.config/team-mokea.json:/data/team-mokea.json \
+  ghcr.io/the-mokea-studio/team-mokea:latest
 
-docker exec -it teamclaude teamclaude login --token   # add accounts from inside
-docker exec -it teamclaude teamclaude status
+docker exec -it team-mokea team-mokea login --token   # add accounts from inside
+docker exec -it team-mokea team-mokea status
 ```
 
-The entrypoint starts as root only long enough to match the runtime user to the owner of the mounted config (or of `/data` when the file does not exist yet), then drops privileges — so a file owned by your user stays writable without a `chown`. `TEAMCLAUDE_UID` (and optional `TEAMCLAUDE_GID`) override the detected owner. stderr is folded into stdout so `docker logs` shows one stream; set `TEAMCLAUDE_SPLIT_STDERR=1` to keep them apart. Auto-update is disabled in the image; pull a new tag to upgrade.
+The entrypoint starts as root only long enough to match the runtime user to the owner of the mounted config (or of `/data` when the file does not exist yet), then drops privileges — so a file owned by your user stays writable without a `chown`. `TEAM_MOKEA_UID` (and optional `TEAM_MOKEA_GID`) override the detected owner. stderr is folded into stdout so `docker logs` shows one stream; set `TEAM_MOKEA_SPLIT_STDERR=1` to keep them apart. Auto-update is disabled in the image; pull a new tag to upgrade.
 
-The config is created on first start with a random `proxy.apiKey`. Anything reaching the proxy from outside the container is a non-loopback client and must present that key (see [proxy.host](configuration.md#fields)); only `teamclaude` commands run via `docker exec` are exempt.
+The config is created on first start with a random `proxy.apiKey`. Anything reaching the proxy from outside the container is a non-loopback client and must present that key (see [proxy.host](configuration.md#fields)); only `team-mokea` commands run via `docker exec` are exempt.
 
-Build it yourself with `docker build -t teamclaude .` from a checkout.
+Build it yourself with `docker build -t team-mokea .` from a checkout.
 
 ### Session titles in the activity log
 
@@ -66,13 +66,13 @@ while the proxy runs. Set `sessionTitles.width` to change the columns the label 
 Headless, you can re-sync accounts from the config without a restart by POSTing to the local control endpoint (the equivalent of pressing **R** in the TUI):
 
 ```bash
-curl -X POST http://localhost:3456/teamclaude/reload
+curl -X POST http://localhost:3456/team-mokea/reload
 ```
 
-The switch threshold has a control endpoint of its own — the same change as `teamclaude threshold 90`, and what the browser dashboard's **Switch at** control sends:
+The switch threshold has a control endpoint of its own — the same change as `team-mokea threshold 90`, and what the browser dashboard's **Switch at** control sends:
 
 ```bash
-curl -X POST http://localhost:3456/teamclaude/threshold \
+curl -X POST http://localhost:3456/team-mokea/threshold \
   -H 'content-type: application/json' -d '{"percent": 90}'
 ```
 
@@ -82,16 +82,16 @@ You usually don't need to call it directly. `login`, `import`, `enable`, `disabl
 
 Control-plane **writes** (`reload`, `switch`, `threshold`, `priority`, `disable`) are refused when the request carries a browser `Origin` or a cross-site `Sec-Fetch-Site`. Loopback is exempt from the proxy API key so the CLI needs no configuration, but that exemption also covers any web page you happen to visit: a page can POST to `127.0.0.1` cross-origin without a preflight, and while it cannot read the reply, the write would still land. `curl` and the CLI send neither header and are unaffected. Reads (`status`) are not restricted — the same-origin policy already stops a page from seeing the response.
 
-`GET /teamclaude/quota` is the compact read endpoint for status-line integrations. It returns tier-weighted fleet aggregates and the underlying per-account limits; see [Fleet quota endpoint](quota.md#fleet-quota-endpoint).
+`GET /team-mokea/quota` is the compact read endpoint for status-line integrations. It returns tier-weighted fleet aggregates and the underlying per-account limits; see [Fleet quota endpoint](quota.md#fleet-quota-endpoint).
 
 Switching the account by hand has the same headless path — the equivalent of pressing **s** in the TUI and confirming with the default target selected:
 
 ```bash
-teamclaude switch                 # list accounts, marking the current one
-teamclaude switch me@example.com  # make that account the preferred one
+team-mokea switch                 # list accounts, marking the current one
+team-mokea switch me@example.com  # make that account the preferred one
 ```
 
-Both forms need a running server: the choice is runtime state and is never written to the config, so there is nothing to apply on a later restart. The command wraps `POST /teamclaude/switch` with a `{"account": "<name>"}` body, and the account can be given as its display name, its bare email, its `accountUuid`, its `orgUuid`, or the fully qualified `accountUuid/orgUuid` — the last being the only form that tells apart one email that holds accounts in several orgs. The rotation index is deliberately not accepted — it is array position, so a script pinned to `1` would silently follow a different account after a removal.
+Both forms need a running server: the choice is runtime state and is never written to the config, so there is nothing to apply on a later restart. The command wraps `POST /team-mokea/switch` with a `{"account": "<name>"}` body, and the account can be given as its display name, its bare email, its `accountUuid`, its `orgUuid`, or the fully qualified `accountUuid/orgUuid` — the last being the only form that tells apart one email that holds accounts in several orgs. The rotation index is deliberately not accepted — it is array position, so a script pinned to `1` would silently follow a different account after a removal.
 
 As in the TUI, the choice is a weak preference rather than a lock, and it is worth knowing both ways it gets dropped. Rotation abandons it once the account becomes unusable (disabled, spent, throttled), and also whenever any available account carries a strictly lower `priority` value, since a higher-priority account preempts a healthy current one. A switch onto an account that cannot take traffic at all is still recorded, exactly as in the TUI, but the command says so instead of reporting a clean success:
 
@@ -100,16 +100,16 @@ Switched to "me@example.com"
 Warning: "me@example.com" is disabled, so requests will not route to it until that changes.
 ```
 
-Taking an account out of rotation, or moving it in the priority order, has a headless path too — the web equivalent of `teamclaude disable` / `enable` and `teamclaude priority --first` / `--last`, and what the browser dashboard's buttons call:
+Taking an account out of rotation, or moving it in the priority order, has a headless path too — the web equivalent of `team-mokea disable` / `enable` and `team-mokea priority --first` / `--last`, and what the browser dashboard's buttons call:
 
 ```bash
-curl -X POST http://localhost:3456/teamclaude/disable \
+curl -X POST http://localhost:3456/team-mokea/disable \
   -H 'content-type: application/json' -d '{"account": "me@example.com", "disabled": true}'
-curl -X POST http://localhost:3456/teamclaude/priority \
+curl -X POST http://localhost:3456/team-mokea/priority \
   -H 'content-type: application/json' -d '{"account": "me@example.com", "place": "first"}'
 ```
 
-`POST /teamclaude/priority` takes `{"account", "place": "first" | "last"}` or `{"account", "priority": <integer>}`; `POST /teamclaude/disable` takes `{"account", "disabled": true | false}`. Both accept an optional `"org"` (name or uuid) for an email that holds accounts in several orgs — an ambiguous name is refused rather than guessed. Unlike `switch`, these are config **writes**: the change is saved to the config file under the same lock the TUI uses, and the server reloads itself afterwards, so it survives a restart. `place` is relative — `first` lands one below the lowest priority in the fleet, `last` one above the highest — and the reply carries the account as it now stands (`{"ok": true, "name": ..., "priority": ...}` or `{"ok": true, "name": ..., "disabled": ...}`), so a caller learns the number it did not choose. An unknown or ambiguous account, or a priority that is not an integer, is a `400` with the reason; a write that landed but whose reload failed is a `500` that says so, since the file did change. A request authenticated with a `proxy.clientKeys` entry is refused with `403`: a client key is for using the fleet, not for changing which accounts it contains. Use the shared proxy key, or call from the proxy's own machine.
+`POST /team-mokea/priority` takes `{"account", "place": "first" | "last"}` or `{"account", "priority": <integer>}`; `POST /team-mokea/disable` takes `{"account", "disabled": true | false}`. Both accept an optional `"org"` (name or uuid) for an email that holds accounts in several orgs — an ambiguous name is refused rather than guessed. Unlike `switch`, these are config **writes**: the change is saved to the config file under the same lock the TUI uses, and the server reloads itself afterwards, so it survives a restart. `place` is relative — `first` lands one below the lowest priority in the fleet, `last` one above the highest — and the reply carries the account as it now stands (`{"ok": true, "name": ..., "priority": ...}` or `{"ok": true, "name": ..., "disabled": ...}`), so a caller learns the number it did not choose. An unknown or ambiguous account, or a priority that is not an integer, is a `400` with the reason; a write that landed but whose reload failed is a `500` that says so, since the file did change. A request authenticated with a `proxy.clientKeys` entry is refused with `403`: a client key is for using the fleet, not for changing which accounts it contains. Use the shared proxy key, or call from the proxy's own machine.
 
 ### TUI keyboard shortcuts
 
@@ -127,140 +127,140 @@ In selection mode, use `j`/`k` or the arrow keys to navigate, `Enter` to confirm
 
 The settings screen is a list, not a set of letter shortcuts: `↑`/`↓` move between rows, `←`/`→` change the value in place (threshold by 1%, probe by 30s, modes cycle), `Enter` opens a row that needs typing or a sub-screen, `Esc` goes back.
 
-**Reorder accounts** opens the account list with the same two pairs of keys and one extra job for them: `↑`/`↓` pick the account, `←`/`→` move *that account* up and down the list, `Enter` or `Esc` goes back. Every move applies as you make it and is written a moment after the keys stop (or on leaving the screen), so there is nothing to confirm and nothing to cancel. An account moves among the accounts of its own provider: a mixed Claude and Codex fleet is drawn grouped by provider, so a move that would cross into the other group does nothing. This is the order the list is **drawn** in and nothing else — rotation order is [`priority`](routing.md#choosing-an-account), which the screen never touches. `teamclaude attach` draws the same order: each account in `/teamclaude/status` carries its `displayOrder` (`null` until it has been placed).
+**Reorder accounts** opens the account list with the same two pairs of keys and one extra job for them: `↑`/`↓` pick the account, `←`/`→` move *that account* up and down the list, `Enter` or `Esc` goes back. Every move applies as you make it and is written a moment after the keys stop (or on leaving the screen), so there is nothing to confirm and nothing to cancel. An account moves among the accounts of its own provider: a mixed Claude and Codex fleet is drawn grouped by provider, so a move that would cross into the other group does nothing. This is the order the list is **drawn** in and nothing else — rotation order is [`priority`](routing.md#choosing-an-account), which the screen never touches. `team-mokea attach` draws the same order: each account in `/team-mokea/status` carries its `displayOrder` (`null` until it has been placed).
 
-**Sort accounts** chooses what orders the list inside each provider group: **arranged** (your order, above), or the soonest reset of one window — **session reset** (five-hour), **weekly reset**, **S7 reset** or **F7 reset** — which puts the account whose window ends soonest at the top: the quota you lose first if nothing spends it. S7 and F7 read the all-models weekly on an account that has no Sonnet or Fable bucket of its own, since that is the window its Sonnet or Fable use counts against. Accounts with no reading for the window go last (for the session sort, that includes every account with no five-hour window open), and your arrangement breaks ties. The reorder screen always shows the arranged order, because that is the order it edits. `teamclaude attach` reads the same `accountSort` from its own config file.
+**Sort accounts** chooses what orders the list inside each provider group: **arranged** (your order, above), or the soonest reset of one window — **session reset** (five-hour), **weekly reset**, **S7 reset** or **F7 reset** — which puts the account whose window ends soonest at the top: the quota you lose first if nothing spends it. S7 and F7 read the all-models weekly on an account that has no Sonnet or Fable bucket of its own, since that is the window its Sonnet or Fable use counts against. Accounts with no reading for the window go last (for the session sort, that includes every account with no five-hour window open), and your arrangement breaks ties. The reorder screen always shows the arranged order, because that is the order it edits. `team-mokea attach` reads the same `accountSort` from its own config file.
 
 ## Run Claude Code through the proxy
 
 ```bash
-teamclaude run
+team-mokea run
 ```
 
 `run` probes the proxy first. If it's up, Claude Code is routed through it; if it's **not** running, `run` errors out rather than silently bypassing the proxy — which would spend your own quota with no rotation. Pass `--auto-fallback` to launch `claude` directly instead when the proxy is down:
 
 ```bash
-teamclaude run --auto-fallback
+team-mokea run --auto-fallback
 ```
 
 Since **1.1.0**, `run` defaults to [MITM forward-proxy mode](proxy-modes.md#mitm-proxy-mode-default) so even hardcoded `api.anthropic.com` endpoints are intercepted. For the previous base-URL-only behavior, pass `--no-mitm` — or set `defaultClientMode: "base-url"` in the config (the **Client mode** row on the TUI settings screen) to make that the default for `run` and `env` alike, with `--mitm` opting back in per launch:
 
 ```bash
-teamclaude run --no-mitm
+team-mokea run --no-mitm
 ```
 
 Arguments after `--` go to `claude`:
 
 ```bash
-teamclaude run -- --model opus
+team-mokea run -- --model opus
 ```
 
 **Claude Code still needs a login of its own.** In both modes the client checks its local login (`~/.claude/.credentials.json`, or the Keychain on macOS) before it sends anything, and the proxy only sees a request once that check passes. The pool's accounts do not stand in for it: they are what the proxy uses upstream, and the two expire independently. So a `claude` that exits at once with `Failed to authenticate: OAuth session expired and could not be refreshed` is reporting its own login, not the pool — run `claude auth login` and launch again. `run` prints a hint to that effect when `claude` dies within seconds of launch and the local login is missing or past its expiry.
 
 ### Setting the environment yourself
 
-`teamclaude env` prints the same export lines `run` uses:
+`team-mokea env` prints the same export lines `run` uses:
 
 ```bash
-eval "$(teamclaude env)"           # MITM: HTTPS_PROXY + NODE_EXTRA_CA_CERTS
-eval "$(teamclaude env --no-mitm)" # base-URL: ANTHROPIC_BASE_URL only
-eval "$(teamclaude env --mitm)"    # MITM regardless of defaultClientMode
+eval "$(team-mokea env)"           # MITM: HTTPS_PROXY + NODE_EXTRA_CA_CERTS
+eval "$(team-mokea env --no-mitm)" # base-URL: ANTHROPIC_BASE_URL only
+eval "$(team-mokea env --mitm)"    # MITM regardless of defaultClientMode
 claude
 ```
 
 Only the export lines go to stdout (so `eval` is safe); a short summary and any hints go to stderr. No `ANTHROPIC_API_KEY` is emitted — loopback clients are exempt from the proxy key gate, and setting it would drop Claude Code out of subscription mode. A remote (non-loopback) client must add the proxy key itself.
 
-**The proxy variables are shell-wide.** In MITM mode the eval exports `HTTPS_PROXY` and friends, and every other tool in that shell — `gh`, `git`, a package manager — follows them to a listener that only speaks to the providers' hosts; in a sandboxed shell that can surface as a synthetic 403 from an unrelated command. If that is your shell, set `defaultClientMode: "base-url"` (the **Client mode** row on the TUI settings screen): `env` then emits `ANTHROPIC_BASE_URL` only and, re-evaluated, unsets the proxy variables an earlier MITM eval left pointing at this proxy, leaving a real corporate proxy alone. `teamclaude run` scopes the variables to the `claude` process either way.
+**The proxy variables are shell-wide.** In MITM mode the eval exports `HTTPS_PROXY` and friends, and every other tool in that shell — `gh`, `git`, a package manager — follows them to a listener that only speaks to the providers' hosts; in a sandboxed shell that can surface as a synthetic 403 from an unrelated command. If that is your shell, set `defaultClientMode: "base-url"` (the **Client mode** row on the TUI settings screen): `env` then emits `ANTHROPIC_BASE_URL` only and, re-evaluated, unsets the proxy variables an earlier MITM eval left pointing at this proxy, leaving a real corporate proxy alone. `team-mokea run` scopes the variables to the `claude` process either way.
 
 **Your own `NO_PROXY` is kept.** `run` and `env` both set `NO_PROXY=localhost,127.0.0.1,::1` and append whatever the launching shell already had. That matters for local development: a dev server on a name like `app.test` resolves to 127.0.0.1 through a local resolver, and a forward to loopback is refused, so a client that proxied it would get a 403 on every retry. `export NO_PROXY=.test` before the eval (or before `run`) and the launched client gets `localhost,127.0.0.1,::1,.test`. The one entry that is dropped is `*` — it would send `api.anthropic.com` around the proxy as well, silently ending rotation; use `--no-mitm` for a direct launch.
 
-**Using an agent multiplexer or a tool that spawns `claude` itself?** Export this environment in the process that launches those `claude` instances — e.g. `eval "$(teamclaude env)"` in the shell you start the multiplexer from. Every spawned `claude` then gets the same routing (and MITM interception of hardcoded endpoints) without going through `teamclaude run`. The trade-off: `run`'s proxy-up/down guard only applies when you launch via `run`, so start the server before the multiplexer.
+**Using an agent multiplexer or a tool that spawns `claude` itself?** Export this environment in the process that launches those `claude` instances — e.g. `eval "$(team-mokea env)"` in the shell you start the multiplexer from. Every spawned `claude` then gets the same routing (and MITM interception of hardcoded endpoints) without going through `team-mokea run`. The trade-off: `run`'s proxy-up/down guard only applies when you launch via `run`, so start the server before the multiplexer.
 
 ### Routing plain `claude` automatically
 
-So you don't have to type `teamclaude run` every time, add a shell alias that sends plain `claude` through the proxy:
+So you don't have to type `team-mokea run` every time, add a shell alias that sends plain `claude` through the proxy:
 
 ```bash
-teamclaude alias              # print the alias for your shell
-teamclaude alias --install    # or write it to your shell rc (--uninstall to remove)
+team-mokea alias              # print the alias for your shell
+team-mokea alias --install    # or write it to your shell rc (--uninstall to remove)
 ```
 
-This is an interactive-shell alias — it affects `claude` typed at a prompt, not `claude` spawned by editors or scripts. It's a thin passthrough to `teamclaude run`, which holds the proxy-up/down logic (so it errors when the proxy is down; add `--auto-fallback` to launch claude directly instead).
+This is an interactive-shell alias — it affects `claude` typed at a prompt, not `claude` spawned by editors or scripts. It's a thin passthrough to `team-mokea run`, which holds the proxy-up/down logic (so it errors when the proxy is down; add `--auto-fallback` to launch claude directly instead).
 
 ## Command reference
 
 ```bash
-teamclaude login             # Add an account via OAuth (--api for an API key)
-teamclaude import            # Import credentials from Claude Code
-teamclaude server            # Start the proxy (--headless for plain logs)
-teamclaude run               # Run Claude Code through the proxy
-teamclaude env               # Print export lines for routing claude yourself
-teamclaude alias             # Print/install a `claude` alias that routes via the proxy
-teamclaude accounts          # List accounts with subscription tier and token status
-teamclaude status            # Show live proxy status (requires running server)
-teamclaude attach            # Open the live dashboard against a running server
-teamclaude dashboard         # Open the web dashboard in the browser (needs server)
-teamclaude service install   # Run the proxy as a login service (uninstall/status/print)
-teamclaude switch [name]     # Prefer an account; no name lists them (needs server)
-teamclaude remove <name>     # Remove an account (by name or email)
-teamclaude disable <name>    # Temporarily exclude an account from rotation
-teamclaude enable <name>     # Re-enable it (also clears a stuck error state)
-teamclaude priority <name> 1 # Set rotation priority (lower = preferred)
-teamclaude route list        # Manage per-model routes (add/rm)
-teamclaude threshold 90      # Utilization at which rotation leaves an account
-teamclaude distribute on     # Spread new sessions across equal-priority accounts
-teamclaude probe 300         # Enable background quota refresh (off by default)
-teamclaude warmup 600        # Enable keep-warm (off by default, spends quota)
-teamclaude warmup reset 15:30 --timezone Europe/Moscow
+team-mokea login             # Add an account via OAuth (--api for an API key)
+team-mokea import            # Import credentials from Claude Code
+team-mokea server            # Start the proxy (--headless for plain logs)
+team-mokea run               # Run Claude Code through the proxy
+team-mokea env               # Print export lines for routing claude yourself
+team-mokea alias             # Print/install a `claude` alias that routes via the proxy
+team-mokea accounts          # List accounts with subscription tier and token status
+team-mokea status            # Show live proxy status (requires running server)
+team-mokea attach            # Open the live dashboard against a running server
+team-mokea dashboard         # Open the web dashboard in the browser (needs server)
+team-mokea service install   # Run the proxy as a login service (uninstall/status/print)
+team-mokea switch [name]     # Prefer an account; no name lists them (needs server)
+team-mokea remove <name>     # Remove an account (by name or email)
+team-mokea disable <name>    # Temporarily exclude an account from rotation
+team-mokea enable <name>     # Re-enable it (also clears a stuck error state)
+team-mokea priority <name> 1 # Set rotation priority (lower = preferred)
+team-mokea route list        # Manage per-model routes (add/rm)
+team-mokea threshold 90      # Utilization at which rotation leaves an account
+team-mokea distribute on     # Spread new sessions across equal-priority accounts
+team-mokea probe 300         # Enable background quota refresh (off by default)
+team-mokea warmup 600        # Enable keep-warm (off by default, spends quota)
+team-mokea warmup reset 15:30 --timezone Europe/Moscow
                              # Schedule warm-up for a daily target reset
-teamclaude warmup rolling 15:30 --timezone Europe/Moscow
+team-mokea warmup rolling 15:30 --timezone Europe/Moscow
                              # Anchor resets at 15:30, then continue every 5h
-teamclaude api <path>        # Call an API endpoint with account credentials
-teamclaude callback login    # Sign in to callback.net: keep OAuth tokens in step across your installs
-teamclaude callback status   # (also: sync, logout) — see docs/accounts.md
-teamclaude update            # Check npm for a newer teamclaude and install it
-teamclaude version           # Print the installed version
-teamclaude help              # Show all commands
+team-mokea api <path>        # Call an API endpoint with account credentials
+team-mokea callback login    # Sign in to callback.net: keep OAuth tokens in step across your installs
+team-mokea callback status   # (also: sync, logout) — see docs/accounts.md
+team-mokea update            # Check npm for a newer team-mokea and install it
+team-mokea version           # Print the installed version
+team-mokea help              # Show all commands
 ```
 
-`teamclaude status` prints the same picture as the TUI, once, as text. Handy over SSH or in a script; `--json` for machine-readable output. The JSON's `server.version` is the version of the process answering — read once at startup, so right after `teamclaude update` it still names the old code until the restart, where the installed CLI's `teamclaude version` already names the new one; `server.pid` is that process's id, so a caller can tell which server answered on a port. Each account's shared windows carry the time upstream last stated them, beside the value: `quota.unified5hSeenAt` and `quota.unified7dSeenAt`, in epoch milliseconds, for Claude and Codex accounts alike. Only a response or probe that states that window's utilization moves its stamp; a reset time alone, a failed probe or a model-scoped weekly bucket does not. (A Codex subscription states its only 5-hour window inside a model-named family; that reading is the account's 5-hour value, so it moves the 5-hour stamp.) The stamps survive a restart, and a value restored from a state file written before they existed reads `null` until upstream states it again, so `null` means "age unknown", never "just now".
+`team-mokea status` prints the same picture as the TUI, once, as text. Handy over SSH or in a script; `--json` for machine-readable output. The JSON's `server.version` is the version of the process answering — read once at startup, so right after `team-mokea update` it still names the old code until the restart, where the installed CLI's `team-mokea version` already names the new one; `server.pid` is that process's id, so a caller can tell which server answered on a port. Each account's shared windows carry the time upstream last stated them, beside the value: `quota.unified5hSeenAt` and `quota.unified7dSeenAt`, in epoch milliseconds, for Claude and Codex accounts alike. Only a response or probe that states that window's utilization moves its stamp; a reset time alone, a failed probe or a model-scoped weekly bucket does not. (A Codex subscription states its only 5-hour window inside a model-named family; that reading is the account's 5-hour value, so it moves the 5-hour stamp.) The stamps survive a restart, and a value restored from a state file written before they existed reads `null` until upstream states it again, so `null` means "age unknown", never "just now".
 
-`teamclaude attach` opens the terminal dashboard itself against a server that is already running, which is how you get interactive control back when the proxy runs as a background service. It polls the same status endpoint every second and can do the two things the remote control exposes: `s` switches account, `R` reloads config. The browser dashboard adds the matching **Reload config** action plus a zero-spend **Probe quotas** action; settings editing and the request activity stream still stay in the server's own TUI because they need state that only that process has. When contact with the server drops, the header marker turns from `▲` to `▼` and what is on screen is the last snapshot, not the current state.
+`team-mokea attach` opens the terminal dashboard itself against a server that is already running, which is how you get interactive control back when the proxy runs as a background service. It polls the same status endpoint every second and can do the two things the remote control exposes: `s` switches account, `R` reloads config. The browser dashboard adds the matching **Reload config** action plus a zero-spend **Probe quotas** action; settings editing and the request activity stream still stay in the server's own TUI because they need state that only that process has. When contact with the server drops, the header marker turns from `▲` to `▼` and what is on screen is the last snapshot, not the current state.
 
-`teamclaude service install` registers the proxy as a user service that starts at login and restarts on its own — a LaunchAgent on macOS, a `systemd --user` unit on Linux (`uninstall`, `status` and `print` round it out; `print` writes the unit to stdout without touching anything). On macOS the LaunchAgent runs with `ProcessType` `Standard`: the `Background` class it used before carried a QoS clamp that starved the proxy under host contention (status timeouts, seconds of event-loop lag). The unit is only written at install time, so an existing install keeps whatever it was installed with until you re-run `teamclaude service install`.
+`team-mokea service install` registers the proxy as a user service that starts at login and restarts on its own — a LaunchAgent on macOS, a `systemd --user` unit on Linux (`uninstall`, `status` and `print` round it out; `print` writes the unit to stdout without touching anything). On macOS the LaunchAgent runs with `ProcessType` `Standard`: the `Background` class it used before carried a QoS clamp that starved the proxy under host contention (status timeouts, seconds of event-loop lag). The unit is only written at install time, so an existing install keeps whatever it was installed with until you re-run `team-mokea service install`.
 
-![teamclaude status output](assets/status-redacted.png)
+![team-mokea status output](assets/status-redacted.png)
 
 ## Control routes under a second name
 
-Every `/teamclaude/…` route the server exposes — `status`, `quota`, `reload`, `switch`, `disable`, `priority`, `threshold`, `probe`, `dashboard` and `mcp` — also answers at the same path under `/teamrouter/…`, with the same gates and the same replies. It is the first step of the [rename to TeamRouter](../README.md#renaming-to-teamrouter); scripts and dashboards written against `/teamclaude/…` keep working unchanged.
+Every `/team-mokea/…` route the server exposes — `status`, `quota`, `reload`, `switch`, `disable`, `priority`, `threshold`, `probe`, `dashboard` and `mcp` — also answers at the same path under `/team-mokea/…`, with the same gates and the same replies. It is the first step of the [rename to Team Mokea](../README.md#renaming-to-team-mokea); scripts and dashboards written against `/team-mokea/…` keep working unchanged.
 
 ## Status dashboard (browser)
 
-`GET /teamclaude/dashboard` serves a self-contained HTML page rendering the same data as `teamclaude status`: per-account quota bars (session and weekly, plus one bar per model-scoped weekly bucket upstream reports), rotation state, and active sessions — refreshed every few seconds.
+`GET /team-mokea/dashboard` serves a self-contained HTML page rendering the same data as `team-mokea status`: per-account quota bars (session and weekly, plus one bar per model-scoped weekly bucket upstream reports), rotation state, and active sessions — refreshed every few seconds.
 
-`teamclaude dashboard` opens this page in the system browser against a running server (it starts none; use `teamclaude server` or `teamclaude service install` for that). The page's **Reload config** and **Probe quotas** buttons mirror the corresponding TUI actions without spending message quota. The **Theme** button cycles system → light → dark; the choice is kept in the browser's localStorage, and "system" follows the browser's `prefers-color-scheme`.
+`team-mokea dashboard` opens this page in the system browser against a running server (it starts none; use `team-mokea server` or `team-mokea service install` for that). The page's **Reload config** and **Probe quotas** buttons mirror the corresponding TUI actions without spending message quota. The **Theme** button cycles system → light → dark; the choice is kept in the browser's localStorage, and "system" follows the browser's `prefers-color-scheme`.
 
 With `proxy.usageDimensions` configured, each dimension gets its own sortable table. With `proxy.sessionDetail` on, a per-conversation table shows each conversation's session, client, project, serving accounts, and what it actually spent per weekly bucket — cache reads and cache creation included — filterable by project or client. A client session that fans out to subagents is one row per agent: the rows carry the same **Session** and are told apart by **Conv**, a short digest of the conversation each one is (see [Session-aware routing](routing.md#session-aware-routing)). That table is off by default; see [Configuration](configuration.md#usage-dimensions).
 
-A **Usage window** control sits above the Clients table and governs it and every dimension table under it. **Total** is the lifetime counter those tables have always shown; **Last 5h** and **Last 24h** show only what was spent inside that window. The tables re-sort on whatever window is selected, so the busiest client of the last five hours is the top row rather than the busiest of all time. **Last used** stays the lifetime figure under every window, since it answers when a client was last seen at all, which a window cannot. The figures come from `windows` on each client and dimension entry in `/teamclaude/status` — a rolled-up `{ requests, connections, inputTokens, outputTokens }` per window. The proxy produces them by tallying traffic into 15-minute slots and keeping only the slots the longest window needs, so a window covers its own length plus at most one slot, and the cost is set by the window rather than by uptime. The slots ride in the state file, so a restart resumes the windows instead of restarting them. A client or value with no traffic in any window carries no `windows` key at all rather than rows of zeros — the windows nest, so an empty longest window means every window is empty — which keeps the status payload close to its previous size on a dimension whose values are mostly stale. A consumer of `/teamclaude/status` should read an absent `windows` as zero in every window, and note that a proxy older than this feature omits it for the different reason that it has no windows to report. The control governs the Clients table and the dimension tables only: the Sessions table below them reports per weekly quota bucket, which is a different question and is unaffected by it. `5h` is the shared quota window. There is deliberately no 7-day window: the weekly quota is a bucket with a reset instant rather than a rolling window, so an honest weekly figure is "since the reset", not "in the last 168 hours".
+A **Usage window** control sits above the Clients table and governs it and every dimension table under it. **Total** is the lifetime counter those tables have always shown; **Last 5h** and **Last 24h** show only what was spent inside that window. The tables re-sort on whatever window is selected, so the busiest client of the last five hours is the top row rather than the busiest of all time. **Last used** stays the lifetime figure under every window, since it answers when a client was last seen at all, which a window cannot. The figures come from `windows` on each client and dimension entry in `/team-mokea/status` — a rolled-up `{ requests, connections, inputTokens, outputTokens }` per window. The proxy produces them by tallying traffic into 15-minute slots and keeping only the slots the longest window needs, so a window covers its own length plus at most one slot, and the cost is set by the window rather than by uptime. The slots ride in the state file, so a restart resumes the windows instead of restarting them. A client or value with no traffic in any window carries no `windows` key at all rather than rows of zeros — the windows nest, so an empty longest window means every window is empty — which keeps the status payload close to its previous size on a dimension whose values are mostly stale. A consumer of `/team-mokea/status` should read an absent `windows` as zero in every window, and note that a proxy older than this feature omits it for the different reason that it has no windows to report. The control governs the Clients table and the dimension tables only: the Sessions table below them reports per weekly quota bucket, which is a different question and is unaffected by it. `5h` is the shared quota window. There is deliberately no 7-day window: the weekly quota is a bucket with a reset instant rather than a rolling window, so an honest weekly figure is "since the reset", not "in the last 168 hours".
 
-A **warning banner** sits at the top of the page and is empty unless something is wrong. It reports a conversation that has had several client requests in a row come back with nothing usable — the case that reads as zero tokens exactly like an idle one, and is otherwise invisible — plus an account that needs a person (a broken token or a disabled entry). A spent quota bucket on **one** account, a rate-limit back-off and an upstream refusal are **not** reported: those clear themselves, and a banner that is always on is one nobody reads. When *every* account is over its threshold or in a hold, conversations do start starving — and the banner says which of the two it is, rather than blaming the conversation. Overage spend is not reported either: it is a month-to-date figure, so it would be lit for most of the month; the account card and `teamclaude status` carry it with the amount. With `proxy.sessionDetail` off the banner still fires, but names neither the session nor the conversation.
+A **warning banner** sits at the top of the page and is empty unless something is wrong. It reports a conversation that has had several client requests in a row come back with nothing usable — the case that reads as zero tokens exactly like an idle one, and is otherwise invisible — plus an account that needs a person (a broken token or a disabled entry). A spent quota bucket on **one** account, a rate-limit back-off and an upstream refusal are **not** reported: those clear themselves, and a banner that is always on is one nobody reads. When *every* account is over its threshold or in a hold, conversations do start starving — and the banner says which of the two it is, rather than blaming the conversation. Overage spend is not reported either: it is a month-to-date figure, so it would be lit for most of the month; the account card and `team-mokea status` carry it with the amount. With `proxy.sessionDetail` off the banner still fires, but names neither the session nor the conversation.
 
-A **Routing** table above the accounts shows, for Fable, Sonnet, and any configured route, which account rotation would pick for a new request of that family and how many accounts could serve it — the ones that cannot are struck through, which is the reason the family is elsewhere. A pinned route names its pin, and says so when the pin is not eligible right now. The last rows are everything without a route of its own, one per provider in the fleet ("Claude default", "Codex default"): each names the server's default target for that provider, which is that provider's current account unless it is blocked or outranked, in which case the row says why. A Claude and a Codex pool keep independent cursors, so the summary line and the `current` badge on each card are per provider too. Targets are the server's own answers (`routes[].target`, `defaultTargets` and `currentAccounts` in `/teamclaude/status`; the older single-valued `defaultTarget` and `currentAccount` are still emitted. `currentIndexes` is `currentAccounts` by position: an object keyed by provider whose value is the current account's zero-based index into the status `accounts` array, or `null` when nothing can serve that provider — a name alone is ambiguous when two accounts share one, and it is what the attached TUI uses to place each `►`), not something the page derives from the quota bars; they describe a fresh request, not one a running conversation has already pinned elsewhere.
+A **Routing** table above the accounts shows, for Fable, Sonnet, and any configured route, which account rotation would pick for a new request of that family and how many accounts could serve it — the ones that cannot are struck through, which is the reason the family is elsewhere. A pinned route names its pin, and says so when the pin is not eligible right now. The last rows are everything without a route of its own, one per provider in the fleet ("Claude default", "Codex default"): each names the server's default target for that provider, which is that provider's current account unless it is blocked or outranked, in which case the row says why. A Claude and a Codex pool keep independent cursors, so the summary line and the `current` badge on each card are per provider too. Targets are the server's own answers (`routes[].target`, `defaultTargets` and `currentAccounts` in `/team-mokea/status`; the older single-valued `defaultTarget` and `currentAccount` are still emitted. `currentIndexes` is `currentAccounts` by position: an object keyed by provider whose value is the current account's zero-based index into the status `accounts` array, or `null` when nothing can serve that provider — a name alone is ambiguous when two accounts share one, and it is what the attached TUI uses to place each `►`), not something the page derives from the quota bars; they describe a fresh request, not one a running conversation has already pinned elsewhere.
 
-Each account card has a **switch** button that makes that account the current one (the same `POST /teamclaude/switch` the CLI uses). It is a nudge, not a pin: normal rotation resumes from there. What happens to traffic already running depends on `distributeSessions` — with it on, a conversation pinned to another account keeps it until it goes idle, so the badge moves before the traffic does; with it off (the default), everything follows the switch on its next request. The page reports whether rotation will actually use the target: a disabled, errored, rate-limited, or over-threshold account — or one outranked by a higher-priority account — is still switched to, but the page says so and why rather than reporting a bare "done".
+Each account card has a **switch** button that makes that account the current one (the same `POST /team-mokea/switch` the CLI uses). It is a nudge, not a pin: normal rotation resumes from there. What happens to traffic already running depends on `distributeSessions` — with it on, a conversation pinned to another account keeps it until it goes idle, so the badge moves before the traffic does; with it off (the default), everything follows the switch on its next request. The page reports whether rotation will actually use the target: a disabled, errored, rate-limited, or over-threshold account — or one outranked by a higher-priority account — is still switched to, but the page says so and why rather than reporting a bare "done".
 
-A **Switch at __ %** control on the actions row sets the fleet-wide switch threshold, the utilization at which rotation leaves an account — the same setting as `teamclaude threshold <1-100>` and the TUI's settings screen, sent as `POST /teamclaude/threshold` with a `{"percent": 1-100}` body. Unlike the switch button this writes the config file and reloads, so it holds across a restart. One number replaces a per-bucket `switchThreshold` table, and the page says which buckets were dropped; per-account `accounts[].switchThreshold` overrides are untouched. The field follows changes made from the CLI, the TUI or another browser on the next poll, except while you are typing in it. A dashboard opened with a `proxy.clientKeys` key may not call it — the server answers 403, since a client key is a tenant of the proxy rather than its operator.
+A **Switch at __ %** control on the actions row sets the fleet-wide switch threshold, the utilization at which rotation leaves an account — the same setting as `team-mokea threshold <1-100>` and the TUI's settings screen, sent as `POST /team-mokea/threshold` with a `{"percent": 1-100}` body. Unlike the switch button this writes the config file and reloads, so it holds across a restart. One number replaces a per-bucket `switchThreshold` table, and the page says which buckets were dropped; per-account `accounts[].switchThreshold` overrides are untouched. The field follows changes made from the CLI, the TUI or another browser on the next poll, except while you are typing in it. A dashboard opened with a `proxy.clientKeys` key may not call it — the server answers 403, since a client key is a tenant of the proxy rather than its operator.
 
-Beside it, each card has an **enable** / **disable** button (`POST /teamclaude/disable`) and, for an enabled account, **prioritize** and **deprioritize** (`POST /teamclaude/priority` with `place: "first"` / `"last"`). Unlike switch, these write the config file and reload the server — the same as `teamclaude disable`, `enable` and `priority --first` / `--last` — so they persist across restarts. A disabled account shows only the enable button: reordering an account that nothing will select is a control that looks like it does something and does not. The note under the cards reports the priority the account landed on, since a relative move picks a number the operator did not type. Both are refused when the page holds a `proxy.clientKeys` key rather than the shared proxy key; see the endpoint notes above.
+Beside it, each card has an **enable** / **disable** button (`POST /team-mokea/disable`) and, for an enabled account, **prioritize** and **deprioritize** (`POST /team-mokea/priority` with `place: "first"` / `"last"`). Unlike switch, these write the config file and reload the server — the same as `team-mokea disable`, `enable` and `priority --first` / `--last` — so they persist across restarts. A disabled account shows only the enable button: reordering an account that nothing will select is a control that looks like it does something and does not. The note under the cards reports the priority the account landed on, since a relative move picks a number the operator did not type. Both are refused when the page holds a `proxy.clientKeys` key rather than the shared proxy key; see the endpoint notes above.
 
 
 ```
-http://localhost:3456/teamclaude/dashboard
+http://localhost:3456/team-mokea/dashboard
 ```
 
-The page is a static asset and loads without a key; the data does not — its script fetches `/teamclaude/status` first, and asks for the proxy key only if the server refuses the request without one. Loopback browsers are key-exempt as everywhere else, so on the proxy's own machine there is no prompt. A key that is entered is kept in the browser's localStorage, and a 401 after a key rotation brings the prompt back. On deployments that put the proxy behind TLS this works remotely too: `https://your-proxy.example.com/teamclaude/dashboard`.
+The page is a static asset and loads without a key; the data does not — its script fetches `/team-mokea/status` first, and asks for the proxy key only if the server refuses the request without one. Loopback browsers are key-exempt as everywhere else, so on the proxy's own machine there is no prompt. A key that is entered is kept in the browser's localStorage, and a 401 after a key rotation brings the prompt back. On deployments that put the proxy behind TLS this works remotely too: `https://your-proxy.example.com/team-mokea/dashboard`.
 
 ## MCP endpoint
 
@@ -272,30 +272,30 @@ The running server can expose its control plane to Claude Code (or any other MCP
 
 `"read"` serves `get_status` (the fleet at a glance: server version, current account, and for each account its priority, whether it is disabled, whether rotation can use it and why not, sessions and known quota windows), `get_quota` and `get_settings`. `"full"` adds everything the CLI's management commands can do: `switch_account`, `reload_config`, `probe_quota`, `set_account_enabled`, `set_account_priority`, `set_account_routing`, `remove_account`, `set_threshold`, `set_distribution`, `set_probe_interval`, `set_warmup`, `set_route`, `remove_route`, `set_blocked_models` and `set_client_mode`. There is no tool for adding accounts or handling account credentials, and none for changing `proxy.mcp` itself. `set_account_routing` does take a proxy URL with its password, and the write log prints that URL masked. `reload_config` re-reads the file and reports how many accounts it added and how many it removed: an account whose entry is gone from the file is dropped from the running fleet (see [accounts](accounts.md)). A reload picks the `proxy.mcp` setting up, so the endpoint can be opened, narrowed or closed while the server runs.
 
-Point Claude Code at it once; `teamclaude run` and `teamclaude env` already keep loopback out of the proxy variables, so the connection goes straight to the server and is key-exempt like every other loopback caller:
+Point Claude Code at it once; `team-mokea run` and `team-mokea env` already keep loopback out of the proxy variables, so the connection goes straight to the server and is key-exempt like every other loopback caller:
 
 ```bash
-claude mcp add --transport http teamclaude http://localhost:3456/teamclaude/mcp
+claude mcp add --transport http team-mokea http://localhost:3456/team-mokea/mcp
 ```
 
 A client elsewhere on the network presents the proxy key the same way the CLI does: `--header "x-api-key: tc-…"`.
 
-The endpoint is one more `/teamclaude/` route and is gated like the others: the proxy key or loopback, no cross-origin requests, and, for a caller admitted without a key, a Host header naming this machine. Three things follow from that. Every holder of any proxy key can read through it, but a named `proxy.clientKeys` key is served the `"read"` tools even when the setting is `"full"`: the write tools — removing an account among them — answer only to the shared `proxy.apiKey` and to key-exempt loopback callers, so handing a client its own key never hands it the fleet. With no proxy key configured at all, the endpoint serves only callers on the proxy's own machine (a loopback peer, no `X-Forwarded-For`/`X-Real-IP`/`Forwarded` header, and `proxy.trustLoopback` not set to `false`) and answers 403 to everyone else; set `proxy.apiKey` to reach it over the network. And a browser-based MCP client cannot reach it, because it sends an `Origin` header and is refused as cross-origin; the endpoint is for clients that run as programs. Each write is logged by the server as one line naming the tool and the arguments.
+The endpoint is one more `/team-mokea/` route and is gated like the others: the proxy key or loopback, no cross-origin requests, and, for a caller admitted without a key, a Host header naming this machine. Three things follow from that. Every holder of any proxy key can read through it, but a named `proxy.clientKeys` key is served the `"read"` tools even when the setting is `"full"`: the write tools — removing an account among them — answer only to the shared `proxy.apiKey` and to key-exempt loopback callers, so handing a client its own key never hands it the fleet. With no proxy key configured at all, the endpoint serves only callers on the proxy's own machine (a loopback peer, no `X-Forwarded-For`/`X-Real-IP`/`Forwarded` header, and `proxy.trustLoopback` not set to `false`) and answers 403 to everyone else; set `proxy.apiKey` to reach it over the network. And a browser-based MCP client cannot reach it, because it sends an `Origin` header and is refused as cross-origin; the endpoint is for clients that run as programs. Each write is logged by the server as one line naming the tool and the arguments.
 
 It speaks both the stateless 2026-07-28 revision of the protocol and the handshake revisions before it, so a client on either works. Replies are plain JSON, never a stream.
 
 ## Auto-update
 
-When TeamClaude is installed globally via npm, it self-updates in the background: it checks the npm registry at most once a day, and when a newer version is published it runs `npm install -g @karpeleslab/teamclaude@latest` and applies it on the next launch. The check runs after a `teamclaude run` session ends and when a headless server starts. In a headless server the install runs as a background child process, so the proxy keeps serving requests while npm works (a synchronous install used to stall it for the duration). A git checkout is never touched — update that with `git pull`. Run `teamclaude update` to update on demand.
+When Team Mokea is installed globally via npm, it self-updates in the background: it checks the npm registry at most once a day, and when a newer version is published it runs `npm install -g @the-mokea-studio/team-mokea@latest` and applies it on the next launch. The check runs after a `team-mokea run` session ends and when a headless server starts. In a headless server the install runs as a background child process, so the proxy keeps serving requests while npm works (a synchronous install used to stall it for the duration). A git checkout is never touched — update that with `git pull`. Run `team-mokea update` to update on demand.
 
-Disable it with `TEAMCLAUDE_DISABLE_AUTOUPDATE=1` or `"autoUpdate": false` in the config.
+Disable it with `TEAM_MOKEA_DISABLE_AUTOUPDATE=1` or `"autoUpdate": false` in the config.
 
 ## Request logging
 
 Log request/response details to a directory, one file per logged request:
 
 ```bash
-teamclaude server --log-to /tmp/requests
+team-mokea server --log-to /tmp/requests
 ```
 
 Bodies are truncated past a size cap, and files older than the retention window are deleted — see [`logLevel`, `logMaxBodyBytes` and `logRetentionHours`](configuration.md#fields) to widen or disable them. The first start after upgrading sweeps whatever in that directory is already older than the window.

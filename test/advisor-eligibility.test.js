@@ -82,7 +82,7 @@ test('the narrowing is logged once per throttle window', (t) => {
     for (let i = 0; i < 10; i++) am.getActiveAccount(null, OPUS, FABLE);
   }));
   assert.deepEqual(lines, [
-    `[TeamClaude] Advisor model "${FABLE}" narrows selection to 1 of 3 accounts — set advisorEligibility to "prefer" to route by request model instead`,
+    `[Team Mokea] Advisor model "${FABLE}" narrows selection to 1 of 3 accounts — set advisorEligibility to "prefer" to route by request model instead`,
   ]);
 
   t.mock.timers.tick(59_000);
@@ -172,7 +172,7 @@ test('prefer mode routes a narrowed advisor request like a plain one', () => {
     assert.equal(am.getActiveAccount(new Set([0, 1]), OPUS, FABLE).name, 'c');
   });
   assert.deepEqual(narrowingLines(lines), [
-    `[TeamClaude] Advisor model "${FABLE}" is served by 1 of 3 accounts — advisorEligibility is "prefer", routing by request model only`,
+    `[Team Mokea] Advisor model "${FABLE}" is served by 1 of 3 accounts — advisorEligibility is "prefer", routing by request model only`,
   ]);
   // What would have been narrowed is still reported.
   assert.equal(am.getStatus().advisorNarrowing.eligible, 1);
@@ -236,7 +236,7 @@ test('no eligible account still degrades to the request model, in both modes', (
     });
     assert.deepEqual(narrowingLines(lines), [], advisorEligibility);
     assert.deepEqual(lines.filter(l => /No account eligible for advisor model/.test(l)), [
-      `[TeamClaude] No account eligible for advisor model "${FABLE}" — routing by request model only`,
+      `[Team Mokea] No account eligible for advisor model "${FABLE}" — routing by request model only`,
     ], advisorEligibility);
   }
 });
@@ -257,7 +257,7 @@ test('setAdvisorEligibility switches a running manager both ways', () => {
 // --- Live reload, against the real server ------------------------------------
 
 async function statusOf(port) {
-  const res = await fetch(`http://127.0.0.1:${port}/teamclaude/status`);
+  const res = await fetch(`http://127.0.0.1:${port}/team-mokea/status`);
   assert.equal(res.status, 200);
   return res.json();
 }
@@ -266,7 +266,7 @@ async function reloadWith(port, configPath, mutate) {
   const edited = JSON.parse(await readFile(configPath, 'utf8'));
   mutate(edited);
   await writeFile(configPath, JSON.stringify(edited));
-  const res = await fetch(`http://127.0.0.1:${port}/teamclaude/reload`, { method: 'POST' });
+  const res = await fetch(`http://127.0.0.1:${port}/team-mokea/reload`, { method: 'POST' });
   const text = await res.text();
   assert.equal(res.status, 200, text);
 }

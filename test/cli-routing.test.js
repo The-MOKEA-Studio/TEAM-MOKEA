@@ -9,8 +9,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { closedPort } from '../test-helpers/spawn-server.js';
 
-// `teamclaude routing` and `login --routing` drive the real CLI as a subprocess
-// against a throwaway TEAMCLAUDE_CONFIG, so the user's real config is never
+// `team-mokea routing` and `login --routing` drive the real CLI as a subprocess
+// against a throwaway TEAM_MOKEA_CONFIG, so the user's real config is never
 // touched. The port here is one nothing listens on: both commands notify a
 // running server after a write, and that notification has to be a no-op for
 // the test to be about the config file.
@@ -22,7 +22,7 @@ import { closedPort } from '../test-helpers/spawn-server.js';
 const cliPath = fileURLToPath(new URL('../src/index.js', import.meta.url));
 
 async function writeConfig(accounts, { upstream = 'https://api.anthropic.com', upstreamProxy = false } = {}) {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-routing-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-routing-'));
   const path = join(dir, 'config.json');
   const config = {
     proxy: { port: 3, apiKey: 'tc-test' },
@@ -36,7 +36,7 @@ async function writeConfig(accounts, { upstream = 'https://api.anthropic.com', u
 
 function runCli(configPath, cliArgs, { stdin } = {}) {
   const child = spawn(process.execPath, [cliPath, ...cliArgs], {
-    env: { ...process.env, TEAMCLAUDE_CONFIG: configPath },
+    env: { ...process.env, TEAM_MOKEA_CONFIG: configPath },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
   let stdout = '';
@@ -56,13 +56,13 @@ function runCli(configPath, cliArgs, { stdin } = {}) {
 
 const readAccounts = async (configPath) => JSON.parse(await readFile(configPath, 'utf8')).accounts;
 
-// ── teamclaude routing ───────────────────────────────────────
+// ── team-mokea routing ───────────────────────────────────────
 
 test('routing with no account prints usage and fails', async () => {
   const configPath = await writeConfig([{ name: 'a@example.com', type: 'apikey', apiKey: 'k1' }]);
   const res = await runCli(configPath, ['routing']);
   assert.equal(res.code, 1);
-  assert.match(res.stderr, /Usage: teamclaude routing/);
+  assert.match(res.stderr, /Usage: team-mokea routing/);
 });
 
 test('routing <name> shows the fleet path when the account has none', async () => {
@@ -155,7 +155,7 @@ test('login --api --routing with an invalid URL refuses before prompting', async
   assert.equal(accounts.length, 0, 'no half-added account');
 });
 
-// ── teamclaude api ───────────────────────────────────────────
+// ── team-mokea api ───────────────────────────────────────────
 
 const listen = (s) => new Promise((r) => s.listen(0, '127.0.0.1', () => r(s.address().port)));
 

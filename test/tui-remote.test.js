@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import { RemoteControl, createAttachSession } from '../src/tui-remote.js';
 
-// Attach mode: a dashboard driven by polled /teamclaude/status instead of a live
+// Attach mode: a dashboard driven by polled /team-mokea/status instead of a live
 // AccountManager. The control plane here is a real HTTP server serving canned
 // status payloads, so the client is exercised over the wire it actually uses.
 
@@ -96,9 +96,9 @@ const json = payload => (req, res) => {
 
 async function makeSession(t, { routes, status = statusFixture() } = {}) {
   const fake = await fakeServer(t, routes || {
-    'GET /teamclaude/status': json(status),
-    'POST /teamclaude/reload': json({ ok: true, added: 0 }),
-    'POST /teamclaude/switch': json({ ok: true }),
+    'GET /team-mokea/status': json(status),
+    'POST /team-mokea/reload': json({ ok: true, added: 0 }),
+    'POST /team-mokea/switch': json({ ok: true }),
   });
   const control = new RemoteControl({ port: fake.port, apiKey: 'secret' });
   const quits = [];
@@ -119,13 +119,13 @@ test('the status call carries the proxy API key and returns the payload', async 
   assert.equal(status.currentAccount, 'bravo');
   assert.deepEqual(
     seen.map(r => [r.method, r.url, r.key]),
-    [['GET', '/teamclaude/status', 'secret']],
+    [['GET', '/team-mokea/status', 'secret']],
   );
 });
 
 test('a non-2xx status reply is an error, not a half-empty dashboard', async (t) => {
   const { control } = await makeSession(t, {
-    routes: { 'GET /teamclaude/status': (req, res) => { res.writeHead(500); res.end('boom'); } },
+    routes: { 'GET /team-mokea/status': (req, res) => { res.writeHead(500); res.end('boom'); } },
   });
   await assert.rejects(() => control.status(), /500/);
 });
@@ -133,19 +133,19 @@ test('a non-2xx status reply is an error, not a half-empty dashboard', async (t)
 test('reload posts to the existing control endpoint', async (t) => {
   const { control, seen } = await makeSession(t);
   assert.deepEqual(await control.reload(), { ok: true, added: 0 });
-  assert.deepEqual(seen.map(r => [r.method, r.url]), [['POST', '/teamclaude/reload']]);
+  assert.deepEqual(seen.map(r => [r.method, r.url]), [['POST', '/team-mokea/reload']]);
 });
 
 test('switching names the account in the request body', async (t) => {
   const { control, seen } = await makeSession(t);
   await control.switchAccount('alpha');
-  assert.deepEqual(seen.map(r => [r.method, r.url]), [['POST', '/teamclaude/switch']]);
+  assert.deepEqual(seen.map(r => [r.method, r.url]), [['POST', '/team-mokea/switch']]);
   assert.deepEqual(JSON.parse(seen[0].body), { account: 'alpha' });
 });
 
 test('a server without the switch endpoint says so instead of reporting success', async (t) => {
   const { control } = await makeSession(t, {
-    routes: { 'GET /teamclaude/status': json(statusFixture()) }, // no switch route
+    routes: { 'GET /team-mokea/status': json(statusFixture()) }, // no switch route
   });
   await assert.rejects(() => control.switchAccount('alpha'), /does not support/i);
 });
@@ -156,8 +156,8 @@ test('a server without the switch endpoint says so instead of reporting success'
 test('an unresolvable account is reported by reason, not as a missing feature', async (t) => {
   const { control } = await makeSession(t, {
     routes: {
-      'GET /teamclaude/status': json(statusFixture()),
-      'POST /teamclaude/switch': (req, res) => {
+      'GET /team-mokea/status': json(statusFixture()),
+      'POST /team-mokea/switch': (req, res) => {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: 'no such account "ghost"', accounts: ['alpha', 'bravo'] }));
       },
@@ -171,21 +171,21 @@ test('an unresolvable account is reported by reason, not as a missing feature', 
 test('a 200 from something that is not this control plane is not a switch', async (t) => {
   const { control } = await makeSession(t, {
     routes: {
-      'GET /teamclaude/status': json(statusFixture()),
-      'POST /teamclaude/switch': (req, res) => {
+      'GET /team-mokea/status': json(statusFixture()),
+      'POST /team-mokea/switch': (req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end('<html>hello</html>');
       },
     },
   });
-  await assert.rejects(() => control.switchAccount('alpha'), /not a teamclaude control endpoint/);
+  await assert.rejects(() => control.switchAccount('alpha'), /not a team-mokea control endpoint/);
 });
 
 test('a rejection reported with 200 is still a rejection', async (t) => {
   const { control } = await makeSession(t, {
     routes: {
-      'GET /teamclaude/status': json(statusFixture()),
-      'POST /teamclaude/reload': json({ ok: false, error: 'reload not supported' }),
+      'GET /team-mokea/status': json(statusFixture()),
+      'POST /team-mokea/reload': json({ ok: false, error: 'reload not supported' }),
     },
   });
   await assert.rejects(() => control.reload(), /reload not supported/);
@@ -286,17 +286,17 @@ test('a payload missing the fields the renderer formats reads as unknown, not a 
 // the actual problem is that the port answers from something else entirely.
 test('a reply that is not a status payload is a connection problem, not an empty fleet', async (t) => {
   const { session, am, tui } = await makeSession(t, {
-    routes: { 'GET /teamclaude/status': json({ hello: 'this is some other service' }) },
+    routes: { 'GET /team-mokea/status': json({ hello: 'this is some other service' }) },
   });
   await session.poll();
   assert.equal(am.connected, false);
-  assert.match(tui.log[0].msg, /not a teamclaude status endpoint/);
+  assert.match(tui.log[0].msg, /not a team-mokea status endpoint/);
   assert.deepEqual(am.accounts, []);
 });
 
 test('an empty but genuine fleet is reported as such, without pointing at dead keys', async (t) => {
   const { session, am, tui } = await makeSession(t, {
-    routes: { 'GET /teamclaude/status': json({ accounts: [], switchThreshold: 0.98 }) },
+    routes: { 'GET /team-mokea/status': json({ accounts: [], switchThreshold: 0.98 }) },
   });
   await session.poll();
   assert.equal(am.connected, true);
@@ -325,7 +325,7 @@ test('a poll applies the payload; a failing poll flags the header and logs once'
   let fail = false;
   const { session, am, tui } = await makeSession(t, {
     routes: {
-      'GET /teamclaude/status': (req, res) => {
+      'GET /team-mokea/status': (req, res) => {
         if (fail) { res.writeHead(503); res.end('down'); return; }
         json(statusFixture())(req, res);
       },
@@ -351,7 +351,7 @@ test('a wedged server does not collect one pending request per tick', async (t) 
   const held = new Promise(resolve => { release = resolve; });
   const { session, seen } = await makeSession(t, {
     routes: {
-      'GET /teamclaude/status': async (req, res) => {
+      'GET /team-mokea/status': async (req, res) => {
         await held; // accepted, answered only when the test lets go
         json(statusFixture())(req, res);
       },
@@ -376,7 +376,7 @@ test('a wedged server does not collect one pending request per tick', async (t) 
 // dashboard sits on a frozen snapshot under a green marker for minutes.
 test('a poll that never gets an answer becomes a lost connection, not a live view', async (t) => {
   const never = new Promise(() => {});
-  const fake = await fakeServer(t, { 'GET /teamclaude/status': async () => { await never; } });
+  const fake = await fakeServer(t, { 'GET /team-mokea/status': async () => { await never; } });
   const control = new RemoteControl({ port: fake.port, apiKey: 'secret', timeoutMs: 60 });
   const session = createAttachSession({ control, config: { proxy: { port: fake.port } }, onQuit: () => {} });
   session.tui.render = () => {};
@@ -391,7 +391,7 @@ test('a poll that never gets an answer becomes a lost connection, not a live vie
 });
 
 test('the poll deadline is derived from the poll interval', async (t) => {
-  const fake = await fakeServer(t, { 'GET /teamclaude/status': json(statusFixture()) });
+  const fake = await fakeServer(t, { 'GET /team-mokea/status': json(statusFixture()) });
   const control = new RemoteControl({ port: fake.port });
   const session = createAttachSession({ control, config: { proxy: { port: fake.port } }, onQuit: () => {}, pollMs: 4000 });
   assert.equal(control.timeoutMs, 12_000);
@@ -429,15 +429,15 @@ test('the control client talks to the host it was given', async () => {
     fetchImpl: async url => { calls.push(url); return reply(200, '{"accounts":[]}'); },
   });
   await control.status();
-  assert.deepEqual(calls, ['http://192.0.2.10:3456/teamclaude/status']);
+  assert.deepEqual(calls, ['http://192.0.2.10:3456/team-mokea/status']);
 });
 
 test('on loopback a 401 blames the port, not the key the server never checks', async (t) => {
   const unauthorized = (req, res) => { res.writeHead(401); res.end('nope'); };
-  const local = await fakeServer(t, { 'GET /teamclaude/status': unauthorized });
+  const local = await fakeServer(t, { 'GET /team-mokea/status': unauthorized });
   await assert.rejects(
     () => new RemoteControl({ port: local.port, host: '127.0.0.1', apiKey: 'k' }).status(),
-    /something other than teamclaude/i,
+    /something other than team-mokea/i,
   );
   // A non-loopback server DOES gate on the key, so there the key is the suspect.
   const remote = new RemoteControl({
@@ -463,14 +463,14 @@ test('R reloads the running server and reports the outcome', async (t) => {
   const { tui, seen } = await makeSession(t);
   tui._key('R');
   await logged(tui);
-  assert.deepEqual(seen.map(r => [r.method, r.url]), [['POST', '/teamclaude/reload']]);
+  assert.deepEqual(seen.map(r => [r.method, r.url]), [['POST', '/team-mokea/reload']]);
   assert.equal(tui.log.length, 1);
   assert.match(tui.log[0].msg, /reload/i);
 });
 
 test('R reports a failed reload instead of pretending it worked', async (t) => {
   const { tui } = await makeSession(t, {
-    routes: { 'GET /teamclaude/status': json(statusFixture()) }, // no reload route
+    routes: { 'GET /team-mokea/status': json(statusFixture()) }, // no reload route
   });
   tui._key('R');
   await logged(tui);
@@ -498,8 +498,8 @@ test('s switches the running server to the selected account', async (t) => {
 test('switching to an account that cannot serve says so', async (t) => {
   const { tui, am } = await makeSession(t, {
     routes: {
-      'GET /teamclaude/status': json(statusFixture()),
-      'POST /teamclaude/switch': json({ ok: true, account: 'alpha', eligible: false }),
+      'GET /team-mokea/status': json(statusFixture()),
+      'POST /team-mokea/switch': json({ ok: true, account: 'alpha', eligible: false }),
     },
   });
   am.applyStatus(statusFixture());
@@ -512,8 +512,8 @@ test('switching to an account that cannot serve says so', async (t) => {
 test('the server\'s own reason for ineligibility is what gets shown', async (t) => {
   const { tui, am } = await makeSession(t, {
     routes: {
-      'GET /teamclaude/status': json(statusFixture()),
-      'POST /teamclaude/switch': json({
+      'GET /team-mokea/status': json(statusFixture()),
+      'POST /team-mokea/switch': json({
         ok: true, account: 'alpha', eligible: false,
         reason: 'outranked by higher-priority account "bravo"',
       }),
@@ -530,8 +530,8 @@ test('the server\'s own reason for ineligibility is what gets shown', async (t) 
 test('a reason carrying control characters cannot corrupt the frame', async (t) => {
   const { tui, am } = await makeSession(t, {
     routes: {
-      'GET /teamclaude/status': json(statusFixture()),
-      'POST /teamclaude/switch': json({
+      'GET /team-mokea/status': json(statusFixture()),
+      'POST /team-mokea/switch': json({
         ok: true, account: 'alpha', eligible: false,
         reason: `disabled\x1b[2J\r\n${'x'.repeat(200)}`,
       }),
@@ -552,9 +552,9 @@ test('a reason carrying control characters cannot corrupt the frame', async (t) 
 test('a switch reports the name the server settled on', async (t) => {
   const { tui, am } = await makeSession(t, {
     routes: {
-      'GET /teamclaude/status': json(statusFixture()),
+      'GET /team-mokea/status': json(statusFixture()),
       // resolveAccountPin canonicalises what it is given; the echo is the truth.
-      'POST /teamclaude/switch': json({ ok: true, account: 'bravo (Acme)' }),
+      'POST /team-mokea/switch': json({ ok: true, account: 'bravo (Acme)' }),
     },
   });
   am.applyStatus(statusFixture());
@@ -566,7 +566,7 @@ test('a switch reports the name the server settled on', async (t) => {
 
 test('a rejected switch is reported and leaves the view alone', async (t) => {
   const { tui, am } = await makeSession(t, {
-    routes: { 'GET /teamclaude/status': json(statusFixture()) }, // no switch route
+    routes: { 'GET /team-mokea/status': json(statusFixture()) }, // no switch route
   });
   am.applyStatus(statusFixture());
   tui._key('s');
@@ -714,7 +714,7 @@ test('a hostile status payload is coerced and stripped before it is drawn', asyn
 
 test('a poll that delivers a hostile payload keeps polling', async (t) => {
   const { session, am, tui } = await makeSession(t, {
-    routes: { 'GET /teamclaude/status': json(hostileStatus()) },
+    routes: { 'GET /team-mokea/status': json(hostileStatus()) },
   });
   await session.poll();
   assert.equal(am.connected, true);
@@ -724,8 +724,8 @@ test('a poll that delivers a hostile payload keeps polling', async (t) => {
 test('the name a switch reply echoes is stripped before it is logged', async (t) => {
   const { tui, am } = await makeSession(t, {
     routes: {
-      'GET /teamclaude/status': json(statusFixture()),
-      'POST /teamclaude/switch': json({ ok: true, account: `alpha${CLIP}\x1b[2J` }),
+      'GET /team-mokea/status': json(statusFixture()),
+      'POST /team-mokea/switch': json({ ok: true, account: `alpha${CLIP}\x1b[2J` }),
     },
   });
   am.applyStatus(statusFixture());
@@ -739,9 +739,9 @@ test('the name a switch reply echoes is stripped before it is logged', async (t)
 test('an error reason off the wire is stripped and clamped', async (t) => {
   const { control } = await makeSession(t, {
     routes: {
-      'GET /teamclaude/status': json(statusFixture()),
-      'POST /teamclaude/reload': json({ ok: false, error: `nope${CLIP}\x1b[2J${'y'.repeat(500)}` }),
-      'POST /teamclaude/switch': (req, res) => {
+      'GET /team-mokea/status': json(statusFixture()),
+      'POST /team-mokea/reload': json({ ok: false, error: `nope${CLIP}\x1b[2J${'y'.repeat(500)}` }),
+      'POST /team-mokea/switch': (req, res) => {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: `no such account${CLIP}` }));
       },
@@ -767,7 +767,7 @@ test('an error reason off the wire is stripped and clamped', async (t) => {
 test('a reply that declares itself oversized is refused before it is read', async (t) => {
   const { control } = await makeSession(t, {
     routes: {
-      'GET /teamclaude/status': (req, res) => {
+      'GET /team-mokea/status': (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Length': String(2 * 1024 * 1024) });
         res.write('{"accounts":[');   // never finishes; the client must not wait for it
       },
@@ -779,7 +779,7 @@ test('a reply that declares itself oversized is refused before it is read', asyn
 test('a chunked reply is abandoned once it passes the cap', async (t) => {
   const { control } = await makeSession(t, {
     routes: {
-      'GET /teamclaude/status': (req, res) => {
+      'GET /team-mokea/status': (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });   // chunked: no length
         const chunk = 'x'.repeat(64 * 1024);
         for (let i = 0; i < 24; i++) res.write(chunk);   // 1.5 MiB
@@ -792,7 +792,7 @@ test('a chunked reply is abandoned once it passes the cap', async (t) => {
 
 test('a reply under the cap is read whole', async (t) => {
   const big = statusFixture({ note: 'y'.repeat(200 * 1024) });
-  const { control } = await makeSession(t, { routes: { 'GET /teamclaude/status': json(big) } });
+  const { control } = await makeSession(t, { routes: { 'GET /team-mokea/status': json(big) } });
   const status = await control.status();
   assert.equal(status.note.length, 200 * 1024);
 });

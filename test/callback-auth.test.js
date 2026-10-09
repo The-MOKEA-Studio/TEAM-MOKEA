@@ -98,13 +98,13 @@ async function mockApi(t, overrides = {}) {
 // The token file sits beside the config, so each test that touches it gets a
 // config path of its own.
 async function tempConfig(t) {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-callback-'));
-  const prev = { c: process.env.TEAMCLAUDE_CONFIG, r: process.env.TEAMROUTER_CONFIG };
-  delete process.env.TEAMROUTER_CONFIG;
-  process.env.TEAMCLAUDE_CONFIG = join(dir, 'config.json');
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-callback-'));
+  const prev = { c: process.env.TEAM_MOKEA_CONFIG, r: process.env.TEAM_MOKEA_CONFIG };
+  delete process.env.TEAM_MOKEA_CONFIG;
+  process.env.TEAM_MOKEA_CONFIG = join(dir, 'config.json');
   t.after(async () => {
-    if (prev.c === undefined) delete process.env.TEAMCLAUDE_CONFIG; else process.env.TEAMCLAUDE_CONFIG = prev.c;
-    if (prev.r !== undefined) process.env.TEAMROUTER_CONFIG = prev.r;
+    if (prev.c === undefined) delete process.env.TEAM_MOKEA_CONFIG; else process.env.TEAM_MOKEA_CONFIG = prev.c;
+    if (prev.r !== undefined) process.env.TEAM_MOKEA_CONFIG = prev.r;
     await rm(dir, { recursive: true, force: true });
   });
   return dir;
@@ -133,7 +133,7 @@ test('the approval URL is the API\'s own, or a short link only when it looks lik
 
 test('the API origin can only be overridden to https, or to plain http on this machine', () => {
   const warned = [];
-  const at = (v) => callbackBase(v === undefined ? {} : { TEAMCLAUDE_CALLBACK_API_BASE: v }, (m) => warned.push(m));
+  const at = (v) => callbackBase(v === undefined ? {} : { TEAM_MOKEA_CALLBACK_API_BASE: v }, (m) => warned.push(m));
   assert.equal(at(undefined), 'https://www.callback.net');
   assert.equal(at('https://staging.example.net/'), 'https://staging.example.net');
   assert.equal(at('http://127.0.0.1:8080'), 'http://127.0.0.1:8080');
@@ -143,13 +143,13 @@ test('the API origin can only be overridden to https, or to plain http on this m
   assert.equal(warned.length, 2);
   assert.match(warned[0], /must be https/);
   // The new prefix wins, as for every other variable.
-  assert.equal(callbackBase({ TEAMROUTER_CALLBACK_API_BASE: 'https://a.example', TEAMCLAUDE_CALLBACK_API_BASE: 'https://b.example' }), 'https://a.example');
+  assert.equal(callbackBase({ TEAM_MOKEA_CALLBACK_API_BASE: 'https://a.example', TEAM_MOKEA_CALLBACK_API_BASE: 'https://b.example' }), 'https://a.example');
 });
 
 test('the client id is the built-in one unless the environment names another', () => {
   assert.equal(callbackClientId({}), CALLBACK_CLIENT_ID);
   assert.match(CALLBACK_CLIENT_ID, /^oaap-[a-z0-9-]+$/);
-  assert.equal(callbackClientId({ TEAMCLAUDE_CALLBACK_CLIENT_ID: ' oaap-other ' }), 'oaap-other');
+  assert.equal(callbackClientId({ TEAM_MOKEA_CALLBACK_CLIENT_ID: ' oaap-other ' }), 'oaap-other');
 });
 
 // ── signing in ───────────────────────────────────────────────
@@ -294,10 +294,10 @@ test('signing out revokes the grant and forgets the token, reachable server or n
 function runCli(configPath, base, cliArgs) {
   // The child must not inherit a proxy from the shell: see test/README.md.
   const env = {
-    ...process.env, TEAMCLAUDE_CONFIG: configPath, TEAMCLAUDE_DISABLE_AUTOUPDATE: '1',
-    TEAMCLAUDE_CALLBACK_API_BASE: base, TEAMCLAUDE_CALLBACK_CLIENT_ID: CLIENT,
+    ...process.env, TEAM_MOKEA_CONFIG: configPath, TEAM_MOKEA_DISABLE_AUTOUPDATE: '1',
+    TEAM_MOKEA_CALLBACK_API_BASE: base, TEAM_MOKEA_CALLBACK_CLIENT_ID: CLIENT,
   };
-  for (const key of Object.keys(env)) if (/^(https?|all|no)_proxy$/i.test(key) || /^TEAMROUTER_/.test(key)) delete env[key];
+  for (const key of Object.keys(env)) if (/^(https?|all|no)_proxy$/i.test(key) || /^TEAM_MOKEA_/.test(key)) delete env[key];
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [cliPath, 'callback', ...cliArgs], { env, stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
@@ -309,8 +309,8 @@ function runCli(configPath, base, cliArgs) {
   });
 }
 
-test('teamclaude callback: login prints the URL and saves the token, status names the user, logout forgets', async (t) => {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-callback-cli-'));
+test('team-mokea callback: login prints the URL and saves the token, status names the user, logout forgets', async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-callback-cli-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const configPath = join(dir, 'config.json');
   const tokenPath = join(dir, 'config.callback.json');
@@ -347,5 +347,5 @@ test('teamclaude callback: login prints the URL and saves the token, status name
 
   const bad = await runCli(configPath, api.base, ['frobnicate']);
   assert.equal(bad.code, 1);
-  assert.match(bad.stderr, /Usage: teamclaude callback login/);
+  assert.match(bad.stderr, /Usage: team-mokea callback login/);
 });

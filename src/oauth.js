@@ -284,7 +284,7 @@ export function isTokenExpired(expiresAt) {
   return Date.now() >= at;
 }
 
-/** Normalize the OAuth profile fields TeamClaude persists and exposes. */
+/** Normalize the OAuth profile fields Team Mokea persists and exposes. */
 export function normalizeProfile(data) {
   return {
     accountUuid: data.account?.uuid,
@@ -985,5 +985,5 @@ function openBrowser(url) {
   const cmd = platform === 'darwin' ? 'open'
     : platform === 'win32' ? 'start ""'
     : 'xdg-open';
-  exec(`${cmd} ${JSON.stringify(url)}`, err => { if (err) console.error(`Could not open a browser (${cmd}): ${err.message} — open the URL by hand or run \`teamclaude login\` on a machine with one`); });
+  exec(`${cmd} ${JSON.stringify(url)}`, err => { if (err) console.error(`Could not open a browser (${cmd}): ${err.message} — open the URL by hand or run \`team-mokea login\` on a machine with one`); });
 }

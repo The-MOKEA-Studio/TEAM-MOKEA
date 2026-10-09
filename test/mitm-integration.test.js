@@ -68,7 +68,7 @@ function makeUpstream(handler) {
   });
 }
 
-// Build the teamclaude proxy (CONNECT → terminate + forward) against `upPort`.
+// Build the team-mokea proxy (CONNECT → terminate + forward) against `upPort`.
 function makeProxy(am, upPort, { leafCertPem, leafKeyPem }, { logDir = null, hooks = {}, sx = null } = {}) {
   const proxy = http.createServer();
   allowLoopbackForward(proxy); // tunnel-mode targets in these tests are on this machine

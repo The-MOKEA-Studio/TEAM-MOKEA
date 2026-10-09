@@ -1,6 +1,6 @@
 // sx.org proxy integration — an IP-based-429 workaround.
 //
-// teamclaude's transient 429s key on the proxy's OUTBOUND IP, not the account,
+// team-mokea's transient 429s key on the proxy's OUTBOUND IP, not the account,
 // so account failover doesn't help. sx.org is a residential proxy-port provider:
 // with an API key we provision a port and tunnel upstream Anthropic traffic
 // through it, giving a different egress IP. Crucially, TLS terminates END-TO-END
@@ -35,7 +35,7 @@ export function sxBase(env = process.env, warn = (m) => console.error(m)) {
   if (u && (u.protocol === 'https:' || (u.protocol === 'http:' && loopback))) return raw.replace(/\/$/, '');
   if (warnedBase !== raw) {
     warnedBase = raw;
-    warn(`[TeamClaude] ignoring SX_API_BASE=${JSON.stringify(raw)}: the sx.org API key rides in the URL, so the base must be https:// (plain http:// is allowed for loopback only); using ${DEFAULT_SX_BASE}`);
+    warn(`[Team Mokea] ignoring SX_API_BASE=${JSON.stringify(raw)}: the sx.org API key rides in the URL, so the base must be https:// (plain http:// is allowed for loopback only); using ${DEFAULT_SX_BASE}`);
   }
   return DEFAULT_SX_BASE;
 }
@@ -45,7 +45,7 @@ export function sxBase(env = process.env, warn = (m) => console.error(m)) {
 // fetch gives a connect timeout and no response timeout, so an api.sx.org that
 // accepts the connection and then says nothing hung the promise for good — and
 // `reloadAccounts` awaits this path when the sx key or mode changed on disk, so
-// `POST /teamclaude/reload` and the TUI's R key never came back (#421).
+// `POST /team-mokea/reload` and the TUI's R key never came back (#421).
 const SX_TIMEOUT_MS = 15_000;
 // A provisioning reply is a few hundred bytes; nothing here needs more.
 const SX_MAX_REPLY_BYTES = 1 << 20;
@@ -235,11 +235,11 @@ export class SxManager {
   async _ensureProxy() {
     try {
       this.proxy = await this.provision();
-      this.log(`[TeamClaude] sx.org proxy ready: ${this.proxy.host}:${this.proxy.port}`);
+      this.log(`[Team Mokea] sx.org proxy ready: ${this.proxy.host}:${this.proxy.port}`);
       return { ok: true, mode: this.mode, proxy: this.proxy };
     } catch (err) {
       this.proxy = null;
-      this.log(`[TeamClaude] sx.org provisioning failed: ${err.message}`);
+      this.log(`[Team Mokea] sx.org provisioning failed: ${err.message}`);
       return { ok: false, error: err.message };
     }
   }

@@ -1,8 +1,10 @@
-# TeamClaude
+# Team Mokea
 
-[![CI](https://github.com/KarpelesLab/teamclaude/actions/workflows/ci.yml/badge.svg)](https://github.com/KarpelesLab/teamclaude/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/@karpeleslab/teamclaude.svg)](https://www.npmjs.com/package/@karpeleslab/teamclaude)
-[![node](https://img.shields.io/node/v/@karpeleslab/teamclaude.svg)](https://nodejs.org)
+A community fork of [TeamClaude](https://github.com/KarpelesLab/teamclaude), rebranded and maintained by The MOKEA Studio.
+
+[![CI](https://github.com/The-MOKEA-Studio/TEAM-MOKEA/actions/workflows/ci.yml/badge.svg)](https://github.com/The-MOKEA-Studio/TEAM-MOKEA/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@the-mokea-studio/team-mokea.svg)](https://www.npmjs.com/package/@the-mokea-studio/team-mokea)
+[![node](https://img.shields.io/node/v/@the-mokea-studio/team-mokea.svg)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Multi-account proxy for [Claude Code](https://claude.ai/claude-code) and [Codex](https://github.com/openai/codex): it pools Claude Max, ChatGPT/Codex, API-key and third-party backend accounts, and rotates on quota.
@@ -11,21 +13,21 @@ It sits between the coding agent and the provider's API, holds several accounts,
 
 **It is built for one person.** The "team" is the agents: someone running ten, or fifty, coding-agent sessions at once needs more than one subscription, and switching accounts by hand each time one fills up is what this replaces. Every account in the pool is your own, and the client is the provider's own CLI. It is not a way to share an account between people, and not a bridge for other clients onto subscription credentials — see [Scope](#scope).
 
-![TeamClaude TUI](screenshots/teamclaude.png)
+![Team Mokea TUI](screenshots/team-mokea.png)
 
 ## Quick start
 
 Node.js 20+ required.
 
 ```bash
-npm install -g @karpeleslab/teamclaude
+npm install -g @the-mokea-studio/team-mokea
 
-teamclaude login     # browser OAuth, run it once per account
-teamclaude server    # start the proxy, shows the TUI
-teamclaude run       # in another terminal: Claude Code through the proxy
+team-mokea login     # browser OAuth, run it once per account
+team-mokea server    # start the proxy, shows the TUI
+team-mokea run       # in another terminal: Claude Code through the proxy
 ```
 
-Already logged into Claude Code? `teamclaude import` takes its credentials instead of a fresh OAuth round. A container image is on GHCR — see [Running in a container](docs/usage.md#running-in-a-container). API keys, and one email holding accounts in several orgs, are covered in [docs/accounts.md](docs/accounts.md).
+Already logged into Claude Code? `team-mokea import` takes its credentials instead of a fresh OAuth round. A container image is on GHCR — see [Running in a container](docs/usage.md#running-in-a-container). API keys, and one email holding accounts in several orgs, are covered in [docs/accounts.md](docs/accounts.md).
 
 ## What it does
 
@@ -47,19 +49,19 @@ Already logged into Claude Code? `teamclaude import` takes its credentials inste
 ## Everyday commands
 
 ```bash
-teamclaude accounts          # accounts with tier and token status
-teamclaude status            # live proxy status, needs a running server
-teamclaude disable <name>    # pause an account without removing it
-teamclaude priority <name> 1 # rotation order, lower = preferred
-teamclaude alias --install   # make plain `claude` go through the proxy
-teamclaude help              # everything else
+team-mokea accounts          # accounts with tier and token status
+team-mokea status            # live proxy status, needs a running server
+team-mokea disable <name>    # pause an account without removing it
+team-mokea priority <name> 1 # rotation order, lower = preferred
+team-mokea alias --install   # make plain `claude` go through the proxy
+team-mokea help              # everything else
 ```
 
 Full reference: [docs/usage.md](docs/usage.md).
 
 ## Configuration
 
-Config is at `~/.config/teamclaude.json` (`$XDG_CONFIG_HOME` honoured) and is meant to be hand-editable. A proxy API key is generated on first use. Observed quota goes to a separate `teamclaude.state.json` next to it, safe to delete since quota gets re-learned from traffic.
+Config is at `~/.config/team-mokea.json` (`$XDG_CONFIG_HOME` honoured) and is meant to be hand-editable. A proxy API key is generated on first use. Observed quota goes to a separate `team-mokea.state.json` next to it, safe to delete since quota gets re-learned from traffic.
 
 Every field, plus environment variables and network tuning: [docs/configuration.md](docs/configuration.md).
 
@@ -86,17 +88,17 @@ Step-by-step lifecycle: [docs/routing.md](docs/routing.md#request-lifecycle).
 | [Compliance](docs/compliance.md) | Who the project is for, and terms of service notes for each provider |
 | [Contributing](CONTRIBUTING.md) | What is in scope, and what a pull request needs |
 
-## Renaming to TeamRouter
+## Rename compatibility
 
-TeamClaude is becoming **TeamRouter** — it pools Codex and third-party accounts as well as Claude ones, and the name should say so. The rename is spread over several releases so that nothing installed, scripted or configured breaks; the plan and its progress are in [issue #72](https://github.com/KarpelesLab/teamclaude/issues/72). As of this release the new name is *accepted* everywhere while the old one stays canonical: `teamrouter` runs the same CLI as `teamclaude`, every `TEAMCLAUDE_*` variable is also read as `TEAMROUTER_*`, every `/teamclaude/…` control route also answers at `/teamrouter/…`, and a `~/.config/teamrouter.json` is used when it exists. Nothing on an existing install needs to change, now or when the default flips.
+The project now uses the Team Mokea name and `team-mokea` command. Existing installations remain compatible: `teamclaude` is an alias, `TEAMCLAUDE_*` variables and `/teamclaude/…` control routes are still accepted, and an existing `~/.config/teamclaude.json` remains the fallback when `~/.config/team-mokea.json` is absent.
 
 ## Security
 
-The only canonical sources for TeamClaude are this repository (https://github.com/KarpelesLab/teamclaude) and the [`@karpeleslab/teamclaude`](https://www.npmjs.com/package/@karpeleslab/teamclaude) npm package. TeamClaude is **never** distributed as a downloadable binary archive, so be wary of soft-forks that bundle a `.zip` and tell you to extract and run it. See [SECURITY.md](SECURITY.md) for details and how to report issues.
+Report vulnerabilities through [GitHub private reporting](https://github.com/The-MOKEA-Studio/TEAM-MOKEA/security/advisories/new). Team Mokea is a community fork of the MIT-licensed upstream project; see [SECURITY.md](SECURITY.md) for provenance and reporting details.
 
 ## Scope
 
-TeamClaude is a local proxy holding your own credentials and driving the provider's own CLI, for one person's work. That holds for every provider it supports, not only Anthropic:
+Team Mokea is a local proxy holding your own credentials and driving the provider's own CLI, for one person's work. That holds for every provider it supports, not only Anthropic:
 
 - **One person, their own accounts.** Not account sharing, not a hosted service, not resale.
 - **The provider's own client.** Claude Code on Claude accounts, the Codex CLI on Codex accounts. No support for other harnesses on subscription credentials.
@@ -106,11 +108,11 @@ How this lines up with the providers' terms, including the multi-subscription qu
 
 ## Star history
 
-<a href="https://www.star-history.com/?repos=KarpelesLab%2Fteamclaude&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=The-MOKEA-Studio%2FTEAM-MOKEA&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=KarpelesLab/teamclaude&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=KarpelesLab/teamclaude&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=KarpelesLab/teamclaude&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=The-MOKEA-Studio/TEAM-MOKEA&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=The-MOKEA-Studio/TEAM-MOKEA&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=The-MOKEA-Studio/TEAM-MOKEA&type=date&legend=top-left" />
  </picture>
 </a>
 

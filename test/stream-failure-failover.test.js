@@ -19,7 +19,7 @@ import { createProxyServer, peekStreamFailure, STREAM_FAILURE_CODES } from '../s
 // The hold is wall-clock bounded; a test-sized bound keeps the slow-first-token
 // cases fast. Read per call by the proxy, so setting it here covers every test.
 const HOLD_MS = 200;
-process.env.TEAMCLAUDE_STREAM_PEEK_HOLD_MS = String(HOLD_MS);
+process.env.TEAM_MOKEA_STREAM_PEEK_HOLD_MS = String(HOLD_MS);
 
 const HOUR = 3600_000;
 const MODEL = 'gpt-5.6-sol';
@@ -254,7 +254,7 @@ test('bytes arriving right after the hold reach the client in order', async () =
 // as-is, whatever follows. A refusal that arrives after the budget is then a
 // relayed stream, which is the cost of not holding an unbounded head.
 test('a stream past the byte budget is released untouched', async () => {
-  process.env.TEAMCLAUDE_STREAM_PEEK_BUDGET_BYTES = '64';
+  process.env.TEAM_MOKEA_STREAM_PEEK_BUDGET_BYTES = '64';
   try {
     await withFleet(['one', 'two'], async (acct, res) => {
       sseHead(res);
@@ -267,7 +267,7 @@ test('a stream past the byte budget is released untouched', async () => {
       assert.equal(body, sse(CREATED, OVERLOADED, FAILED));
     });
   } finally {
-    delete process.env.TEAMCLAUDE_STREAM_PEEK_BUDGET_BYTES;
+    delete process.env.TEAM_MOKEA_STREAM_PEEK_BUDGET_BYTES;
   }
 });
 

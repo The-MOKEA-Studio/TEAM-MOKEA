@@ -50,7 +50,7 @@ async function withServer(proxy, fn, hooks = {}) {
 const KEYED = { apiKey: PROXY_KEY, clientKeys: [{ name: 'ci', key: CLIENT_KEY }] };
 
 function rpc(port, method, params, headers = {}) {
-  return fetch(`http://127.0.0.1:${port}/teamclaude/mcp`, {
+  return fetch(`http://127.0.0.1:${port}/team-mokea/mcp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, ...(params ? { params } : {}) }),
@@ -67,7 +67,7 @@ async function callTool(port, name, args = {}) {
 function postWithHost(port, host, body) {
   return new Promise((resolve, reject) => {
     const req = http.request({
-      host: '127.0.0.1', port, path: '/teamclaude/mcp', method: 'POST',
+      host: '127.0.0.1', port, path: '/team-mokea/mcp', method: 'POST',
       headers: { host, 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' },
     }, res => {
       let text = '';
@@ -95,7 +95,7 @@ test('the endpoint answers 404 itself until proxy.mcp turns it on', async () => 
 
 test('a trailing slash or a query string is still this endpoint, never the forwarder', async () => {
   const ping = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping' }) };
-  const spellings = ['/teamclaude/mcp/', '/teamclaude/mcp?session=1', '/teamclaude/mcp/?x=1'];
+  const spellings = ['/team-mokea/mcp/', '/team-mokea/mcp?session=1', '/team-mokea/mcp/?x=1'];
   await withServer({ ...KEYED, mcp: 'read' }, async ({ port }) => {
     for (const path of spellings) {
       const res = await fetch(`http://127.0.0.1:${port}${path}`, ping);
@@ -104,7 +104,7 @@ test('a trailing slash or a query string is still this endpoint, never the forwa
     }
     // A longer path is somebody else's, not a spelling of this one. Whatever
     // the forwarder makes of it against a dead upstream, it is not a pong.
-    const other = await fetch(`http://127.0.0.1:${port}/teamclaude/mcpx`, ping).then(res => res.status, () => 'not served');
+    const other = await fetch(`http://127.0.0.1:${port}/team-mokea/mcpx`, ping).then(res => res.status, () => 'not served');
     assert.notEqual(other, 200);
   });
   await withServer({ ...KEYED }, async ({ port }) => {
@@ -122,10 +122,10 @@ test('a client completes the handshake and lists tools', async () => {
     assert.equal(init.status, 200);
     const { result } = await init.json();
     assert.equal(result.protocolVersion, '2025-06-18');
-    assert.equal(result.serverInfo.name, 'teamclaude');
+    assert.equal(result.serverInfo.name, 'team-mokea');
     assert.equal(typeof result.serverInfo.version, 'string');
 
-    const note = await fetch(`http://127.0.0.1:${port}/teamclaude/mcp`, {
+    const note = await fetch(`http://127.0.0.1:${port}/team-mokea/mcp`, {
       method: 'POST', body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }),
     });
     assert.equal(note.status, 202);
@@ -142,7 +142,7 @@ test('a client completes the handshake and lists tools', async () => {
 
 test('only POST is served', async () => {
   await withServer({ ...KEYED, mcp: 'read' }, async ({ port }) => {
-    const res = await fetch(`http://127.0.0.1:${port}/teamclaude/mcp`);
+    const res = await fetch(`http://127.0.0.1:${port}/team-mokea/mcp`);
     assert.equal(res.status, 405);
     assert.equal(res.headers.get('allow'), 'POST');
     await res.arrayBuffer();

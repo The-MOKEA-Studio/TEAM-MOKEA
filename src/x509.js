@@ -138,7 +138,7 @@ function newRsaKey() {
 export const CA_DAYS = 3650;
 export const LEAF_DAYS = 825;
 
-export function createCA(cn = 'TeamClaude Local CA', { days = CA_DAYS } = {}) {
+export function createCA(cn = 'Team Mokea Local CA', { days = CA_DAYS } = {}) {
   const key = newRsaKey();
   const certPem = buildCert({
     subjectCN: cn, issuerCN: cn, spkiDer: key.spkiDer, signKey: key.privateKey,

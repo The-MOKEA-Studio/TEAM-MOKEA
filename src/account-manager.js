@@ -45,7 +45,7 @@ export function distributionMode(setting) {
     if (['off', 'false', 'no', '0'].includes(value)) return 'off';
     if (!EVEN_SPELLINGS.includes(value) && !warnedDistributeValues.has(value)) {
       warnedDistributeValues.add(value);
-      console.warn(`[TeamClaude] distributeSessions: unrecognised value ${JSON.stringify(setting)}, distributing evenly (valid: true, false, "adaptive")`);
+      console.warn(`[Team Mokea] distributeSessions: unrecognised value ${JSON.stringify(setting)}, distributing evenly (valid: true, false, "adaptive")`);
     }
     return 'even';
   }
@@ -199,7 +199,7 @@ function emptyQuota() {
     // Normalized reading from a third-party backend (see backend-quota.js).
     // { label, text, utilization, at, windows? } — nothing here knows which
     // provider. windows feeds the fiveHour/weeklyShared/monthly buckets of
-    // /teamclaude/quota (quota-summary.js).
+    // /team-mokea/quota (quota-summary.js).
     backend: null,
     unifiedStatusSeenAt: null,  // ms timestamp of the response that reported it
     // Every model-scoped weekly bucket the usage endpoint named, keyed by its
@@ -236,7 +236,7 @@ function copyBuckets(byBucket) {
 export function accountSwitchThreshold(acct) {
   const { value, rejected } = sanitizeSwitchThreshold(acct?.switchThreshold);
   if (rejected.length) {
-    console.log(`[TeamClaude] Account "${safeLine(acct?.name, 64)}": ignoring ${safeLine(rejected.join(', '), 160)} — a switch threshold must be a number above 0 and at most 1 (0.98 means 98%)`);
+    console.log(`[Team Mokea] Account "${safeLine(acct?.name, 64)}": ignoring ${safeLine(rejected.join(', '), 160)} — a switch threshold must be a number above 0 and at most 1 (0.98 means 98%)`);
   }
   return value;
 }
@@ -282,12 +282,12 @@ export function accountRouting(acct, listener = null) {
   try {
     const routing = parseRoutingUrl(acct?.routing);
     if (routing && isSelfProxy(routing, listener)) {
-      console.log(`[TeamClaude] Account "${safeLine(acct?.name, 64)}": ignoring routing — that address is this server (${describeRouting(routing)}), and a request sent through it would loop back here`);
+      console.log(`[Team Mokea] Account "${safeLine(acct?.name, 64)}": ignoring routing — that address is this server (${describeRouting(routing)}), and a request sent through it would loop back here`);
       return null;
     }
     return routing;
   } catch (/** @type {any} */ err) {
-    console.log(`[TeamClaude] Account "${safeLine(acct?.name, 64)}": ignoring routing — ${safeLine(err?.message || String(err), 200)}`);
+    console.log(`[Team Mokea] Account "${safeLine(acct?.name, 64)}": ignoring routing — ${safeLine(err?.message || String(err), 200)}`);
     return null;
   }
 }
@@ -304,7 +304,7 @@ function makeAccount(acct, index, listener = null) {
   // operator meant to spend, so silently doing nothing would be the one wrong
   // answer.
   if (acct.allowExtraUsage === true && !accountAllowsExtraUsage(acct)) {
-    console.warn(`[TeamClaude] Account "${safeLine(acct.name, 64)}": allowExtraUsage is ignored — only an Anthropic OAuth account can serve on extra usage`);
+    console.warn(`[Team Mokea] Account "${safeLine(acct.name, 64)}": allowExtraUsage is ignored — only an Anthropic OAuth account can serve on extra usage`);
   }
   return {
     index,
@@ -489,7 +489,7 @@ export function advisorEligibilityMode(setting) {
   const shown = safeLine(JSON.stringify(setting) ?? String(setting), 64);
   if (!warnedAdvisorValues.has(shown)) {
     warnedAdvisorValues.add(shown);
-    console.warn(`[TeamClaude] advisorEligibility: unrecognised value ${shown}, using "strict" (valid: "strict", "prefer")`);
+    console.warn(`[Team Mokea] advisorEligibility: unrecognised value ${shown}, using "strict" (valid: "strict", "prefer")`);
   }
   return 'strict';
 }
@@ -839,7 +839,7 @@ export class AccountManager {
 
   /**
    * Make the account at `index` current on an operator's say-so: the TUI's 's'
-   * and the /teamclaude/switch endpoint are the same act by two routes.
+   * and the /team-mokea/switch endpoint are the same act by two routes.
    */
   setCurrentAccount(index) {
     const account = this.accounts[index];
@@ -961,7 +961,7 @@ export class AccountManager {
     if (!account?.entitlementDeniedUntil) return false;
     if (now < account.entitlementDeniedUntil) return true;
     account.entitlementDeniedUntil = null;
-    console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" entitlement cooldown expired, marking available`);
+    console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" entitlement cooldown expired, marking available`);
     return false;
   }
 
@@ -1024,7 +1024,7 @@ export class AccountManager {
     if (!account?.credentialRejectedUntil) return false;
     if (now < account.credentialRejectedUntil) return true;
     account.credentialRejectedUntil = null;
-    console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" 401 cooldown expired; the next request retries its API key`);
+    console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" 401 cooldown expired; the next request retries its API key`);
     return false;
   }
 
@@ -1047,7 +1047,7 @@ export class AccountManager {
     if (!account?.routingFailedUntil) return false;
     if (now < account.routingFailedUntil) return true;
     account.routingFailedUntil = null;
-    console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" routing cooldown expired; the next request retries its proxy`);
+    console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" routing cooldown expired; the next request retries its proxy`);
     return false;
   }
 
@@ -1213,7 +1213,7 @@ export class AccountManager {
     const why = reason === 'quota' ? 'is past its switch threshold'
       : reason === 'upstream-rejected' ? 'was refused upstream on quota'
       : reason ? `is unavailable (${reason})` : 'can no longer serve normally';
-    console.log(`[TeamClaude] Switched to account "${safeLine(best.name, 64)}" — "${safeLine(parked.name, 64)}" ${why} and only served as the fallback`);
+    console.log(`[Team Mokea] Switched to account "${safeLine(best.name, 64)}" — "${safeLine(parked.name, 64)}" ${why} and only served as the fallback`);
   }
 
   /**
@@ -1273,12 +1273,12 @@ export class AccountManager {
     const where = this._scopeLabel(model);
     if (hopOnly) {
       console.log(paid
-        ? `[TeamClaude] Failover hop onto "${name}" on extra usage (paid overage)${where}`
-        : `[TeamClaude] Failover hop onto "${name}" — past its switch threshold, but with free quota left${where}`);
+        ? `[Team Mokea] Failover hop onto "${name}" on extra usage (paid overage)${where}`
+        : `[Team Mokea] Failover hop onto "${name}" — past its switch threshold, but with free quota left${where}`);
     } else {
       console.log(paid
-        ? `[TeamClaude] No account has quota left${where} — routing to "${name}" on extra usage (paid overage)`
-        : `[TeamClaude] No account is under its switch threshold${where} — routing to "${name}" on the free quota it has left`);
+        ? `[Team Mokea] No account has quota left${where} — routing to "${name}" on extra usage (paid overage)`
+        : `[Team Mokea] No account is under its switch threshold${where} — routing to "${name}" on the free quota it has left`);
     }
     return true;
   }
@@ -1299,8 +1299,8 @@ export class AccountManager {
     if (!headroom) return;
     const where = this._scopeLabel(e.model);
     console.log(e.paid
-      ? `[TeamClaude] ${headroom} — leaving extra usage${where}`
-      : `[TeamClaude] ${headroom} — "${safeLine(e.account.name, 64)}" no longer serves past its switch threshold${where}`);
+      ? `[Team Mokea] ${headroom} — leaving extra usage${where}`
+      : `[Team Mokea] ${headroom} — "${safeLine(e.account.name, 64)}" no longer serves past its switch threshold${where}`);
   }
 
   /**
@@ -1442,8 +1442,8 @@ export class AccountManager {
       // The model name comes out of the client's request body (see safe-text.js).
       const name = safeLine(advisorModel, 64);
       console.log(prefer
-        ? `[TeamClaude] Advisor model "${name}" is served by ${eligible} of ${of} accounts — advisorEligibility is "prefer", routing by request model only`
-        : `[TeamClaude] Advisor model "${name}" narrows selection to ${eligible} of ${of} accounts — set advisorEligibility to "prefer" to route by request model instead`);
+        ? `[Team Mokea] Advisor model "${name}" is served by ${eligible} of ${of} accounts — advisorEligibility is "prefer", routing by request model only`
+        : `[Team Mokea] Advisor model "${name}" narrows selection to ${eligible} of ${of} accounts — set advisorEligibility to "prefer" to route by request model instead`);
     }
     return narrows && prefer ? null : advisorModel;
   }
@@ -1528,7 +1528,7 @@ export class AccountManager {
         this._advisorDegradeLogAt = Date.now() + 60_000;
         // The model names come out of the client's request body, so they are
         // stripped before reaching the log (see safe-text.js).
-        console.log(`[TeamClaude] No account eligible for advisor model "${safeLine(advisorModel, 64)}" — routing by request model only`);
+        console.log(`[Team Mokea] No account eligible for advisor model "${safeLine(advisorModel, 64)}" — routing by request model only`);
       }
     }
     return this._select(exclude, model, null, true);
@@ -1713,7 +1713,7 @@ export class AccountManager {
           // once, so the destination gets the same failover burst any other
           // switch would send it — pace it (issue #84).
           this._beginRamp(next);
-          console.log(`[TeamClaude] Session pin on "${pinned.name}" released — its weekly window rolled over; re-routing to "${next.name}"`);
+          console.log(`[Team Mokea] Session pin on "${pinned.name}" released — its weekly window rolled over; re-routing to "${next.name}"`);
           return next;
         }
         // The traffic did not move, so the observation is left where it is and
@@ -2387,9 +2387,9 @@ export class AccountManager {
     this._setCurrent(best);
     this._beginRamp(best);
     if (best.status === 'throttled') {
-      console.log(`[TeamClaude] All accounts unavailable — revalidating throttled "${best.name}" with a live request`);
+      console.log(`[Team Mokea] All accounts unavailable — revalidating throttled "${best.name}" with a live request`);
     } else {
-      console.log(`[TeamClaude] All accounts over threshold — probing "${best.name}" to refresh quota`);
+      console.log(`[Team Mokea] All accounts over threshold — probing "${best.name}" to refresh quota`);
     }
     return best;
   }
@@ -2555,7 +2555,7 @@ export class AccountManager {
       account.status = 'active';
       account.rateLimitedUntil = null;
       account.throttledAt = null;
-      console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" rate limit expired, marking active`);
+      console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" rate limit expired, marking active`);
     }
 
     if (account.status === 'exhausted') return 'exhausted';
@@ -3387,7 +3387,7 @@ export class AccountManager {
     const now = Date.now();
     if (now < (this._rolloverHeldLogAt.get(key) || 0)) return;
     this._rolloverHeldLogAt.set(key, now + 60_000);
-    console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" rolled over its ${window} window ${this._heldRolloverReason(reason)}`);
+    console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" rolled over its ${window} window ${this._heldRolloverReason(reason)}`);
   }
 
   /**
@@ -3629,7 +3629,7 @@ export class AccountManager {
 
     // Clear expired unified quotas
     if (q.unified5h != null && q.unified5hReset && now >= q.unified5hReset) {
-      console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" session quota reset`);
+      console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" session quota reset`);
       // Recorded on the account, not just returned. _clearExpiredQuotas is
       // reached from two directions — refreshExpiredQuotas on the request path,
       // which runs the session-reset switch rule, and _isNearQuota via
@@ -3650,7 +3650,7 @@ export class AccountManager {
       session = true;
     }
     if (q.unified7d != null && q.unified7dReset && now >= q.unified7dReset) {
-      console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" weekly quota reset`);
+      console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" weekly quota reset`);
       q.unified7d = null;
       q.unified7dReset = null;
       q.unified7dSeenAt = null;
@@ -3695,7 +3695,7 @@ export class AccountManager {
       // so a reading is never discarded before it has had a window to prove out.
       if (!q[seenField]) { q[seenField] = now; continue; }
       if (now < q[seenField] + this.familyStaleMs) continue;
-      console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" ${label} weekly reading is stale — revalidating on the next ${label} request`);
+      console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" ${label} weekly reading is stale — revalidating on the next ${label} request`);
       q[key] = null;
       q[`${key}Reset`] = null;
       q[seenField] = null;
@@ -3754,7 +3754,7 @@ export class AccountManager {
    *
    * For read paths. refreshExpiredQuotas() also runs _switchOnSessionReset,
    * which moves currentIndex — so calling that from getStatus would let a GET
-   * on /teamclaude/status rotate the fleet as a side effect of being read, and
+   * on /team-mokea/status rotate the fleet as a side effect of being read, and
    * a polling dashboard would quietly drive routing.
    */
   sweepExpiredQuotas() {
@@ -3901,7 +3901,7 @@ export class AccountManager {
     // failed back onto the same account still finds the roll waiting.
     this._setCurrent(best);
     this._beginRamp(best);
-    console.log(`[TeamClaude] Account "${best.name}" session quota reset and weekly expires sooner — switching to it`);
+    console.log(`[Team Mokea] Account "${best.name}" session quota reset and weekly expires sooner — switching to it`);
   }
 
   _isNearQuota(account, model = null) {
@@ -4000,7 +4000,7 @@ export class AccountManager {
     const wk = best.quota.unified7d != null
       ? `${(best.quota.unified7d * 100).toFixed(1)}% weekly used`
       : 'weekly quota unknown';
-    console.log(`[TeamClaude] Starting on account "${best.name}" (priority ${best.priority || 0}, ${wk})`);
+    console.log(`[Team Mokea] Starting on account "${best.name}" (priority ${best.priority || 0}, ${wk})`);
     return best;
   }
 
@@ -4029,8 +4029,8 @@ export class AccountManager {
       if (switched) {
         this._beginRamp(best);
         console.log(scoped
-          ? `[TeamClaude] Diverting "${safeLine(model, 64)}" to "${best.name}" — "${current.name}" cannot serve it`
-          : `[TeamClaude] Switched to account "${best.name}"`);
+          ? `[Team Mokea] Diverting "${safeLine(model, 64)}" to "${best.name}" — "${current.name}" cannot serve it`
+          : `[Team Mokea] Switched to account "${best.name}"`);
       }
       return best;
     }
@@ -4069,7 +4069,7 @@ export class AccountManager {
       soonestAccount.rateLimitedUntil = null;
       this._setCurrent(soonestAccount);
       this._beginRamp(soonestAccount);
-      console.log(`[TeamClaude] Account "${soonestAccount.name}" reset, switching to it`);
+      console.log(`[Team Mokea] Account "${soonestAccount.name}" reset, switching to it`);
       return soonestAccount;
     }
 
@@ -4163,7 +4163,7 @@ export class AccountManager {
     if (account.probing && account.quota.unified7dReset != null) {
       account.probing = false;
       account.requalify = true;
-      console.log(`[TeamClaude] Learned weekly quota for "${safeLine(account.name, 64)}", re-evaluating selection`);
+      console.log(`[Team Mokea] Learned weekly quota for "${safeLine(account.name, 64)}", re-evaluating selection`);
     }
 
     this._observeBurnRate(account, observed);
@@ -4174,7 +4174,7 @@ export class AccountManager {
 
     if (this._isNearQuota(account)) {
       const pct = account.quota.unified7d != null ? Math.round(account.quota.unified7d * 100) : null;
-      console.log(`[TeamClaude] "${safeLine(account.name, 64)}" near weekly quota${pct == null ? '' : ` (${pct}%)`}`);
+      console.log(`[Team Mokea] "${safeLine(account.name, 64)}" near weekly quota${pct == null ? '' : ` (${pct}%)`}`);
     }
   }
 
@@ -4250,7 +4250,7 @@ export class AccountManager {
     if (account.probing && account.quota.unified7dReset != null) {
       account.probing = false;
       account.requalify = true;
-      console.log(`[TeamClaude] Learned weekly quota for "${safeLine(account.name, 64)}", re-evaluating selection`);
+      console.log(`[Team Mokea] Learned weekly quota for "${safeLine(account.name, 64)}", re-evaluating selection`);
     }
 
     // `unified-status` is upstream's verdict on THIS response. A family-cap 429
@@ -4306,7 +4306,7 @@ export class AccountManager {
         : account.quota.tokensLimit
           ? ((1 - account.quota.tokensRemaining / account.quota.tokensLimit) * 100).toFixed(1)
           : '?';
-      console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" at ${pct}% usage — will switch on next request`);
+      console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" at ${pct}% usage — will switch on next request`);
     }
   }
 
@@ -4503,7 +4503,7 @@ export class AccountManager {
       // drop the dead-token guard too — otherwise the account would come back
       // active but never attempt a refresh (see ensureTokenFresh).
       account._deadRefreshToken = null;
-      console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" re-enabled — clearing error state`);
+      console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" re-enabled — clearing error state`);
     }
     // The same explicit "try this again" for an API key sitting out a 401.
     if (!disabled) this.clearCredentialRejected(accountIndex);
@@ -4574,7 +4574,7 @@ export class AccountManager {
       }
       // Worth a line: the account was refusing this family and is not any more.
       if (wasSpent && !(q[key] != null && q[key] >= this.thresholdFor(key, account))) {
-        console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" ${label} weekly quota confirmed available by probe`);
+        console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" ${label} weekly quota confirmed available by probe`);
       }
     }
     // Families beyond the two with dedicated fields. Replaced wholesale rather
@@ -4608,11 +4608,11 @@ export class AccountManager {
       const was = q.spend;
       q.spend = { ...usage.spend };
       if (q.spend.enabled && !was?.enabled) {
-        console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" can bill real money past its plan limits (extra usage is enabled upstream)`);
+        console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" can bill real money past its plan limits (extra usage is enabled upstream)`);
       }
       const spentNow = (q.spend.usedMinor || 0) > 0;
       if (spentNow && !((was?.usedMinor || 0) > 0)) {
-        console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" has started spending real money: ${formatMoney(q.spend)}`);
+        console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" has started spending real money: ${formatMoney(q.spend)}`);
       }
     }
 
@@ -4713,7 +4713,7 @@ export class AccountManager {
     // after throttleProbeFloorMs from here, so a probe that 429s again pushes
     // the next probe out by a full floor rather than hammering upstream.
     account.throttledAt = Date.now();
-    console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" rate limited for ${retryAfterSeconds}s`);
+    console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" rate limited for ${retryAfterSeconds}s`);
   }
 
   /**
@@ -4727,7 +4727,7 @@ export class AccountManager {
     account.status = 'active';
     account.rateLimitedUntil = null;
     account.throttledAt = null;
-    console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" revalidated — rate limit no longer applies, back in rotation`);
+    console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" revalidated — rate limit no longer applies, back in rotation`);
   }
 
   /**
@@ -4748,7 +4748,7 @@ export class AccountManager {
     // will be rejected every time, so retrying it only floods the OAuth endpoint
     // — observed live: 287 identical invalid_grant calls after two accounts' tokens
     // were invalidated (a `/login` elsewhere rotates the token and kills the copy
-    // teamclaude holds). Paths that bypass availability checks keep calling this
+    // team-mokea holds). Paths that bypass availability checks keep calling this
     // (the quota prober refreshes every OAuth account regardless of status, and a
     // pinned request reaches here without _isAvailable), so marking the account
     // 'error' alone does not stop the retries. Keyed on the token VALUE, not the
@@ -4764,7 +4764,7 @@ export class AccountManager {
     if (account._deadRefreshToken && account._deadRefreshToken === account.refreshToken) {
       if (account.status !== 'error') {
         account.status = 'error';
-        console.error(`[TeamClaude] Account "${safeLine(account.name, 64)}" still holds a rejected refresh token — run: teamclaude login`);
+        console.error(`[Team Mokea] Account "${safeLine(account.name, 64)}" still holds a rejected refresh token — run: team-mokea login`);
       }
       return;
     }
@@ -4790,9 +4790,9 @@ export class AccountManager {
     if (account._refreshPromise) return account._refreshPromise;
 
     account._refreshPromise = (async () => {
-      console.log(`[TeamClaude] Refreshing token for account "${safeLine(account.name, 64)}"...`);
+      console.log(`[Team Mokea] Refreshing token for account "${safeLine(account.name, 64)}"...`);
       // The token we SEND, captured before the await. A config reload or
-      // `teamclaude import` (updateAccountTokens) can install newer tokens while
+      // `team-mokea import` (updateAccountTokens) can install newer tokens while
       // the grant is in flight; reading `account.refreshToken` afterwards would
       // attribute this call's outcome to the wrong token — marking the freshly
       // imported one dead on invalid_grant (locking the account out until a
@@ -4815,7 +4815,7 @@ export class AccountManager {
         const newTokens = await this._refreshCoordinator(account, refresh, { force });
         if (newTokens == null) return;
         if (account.refreshToken !== sent) {
-          console.log(`[TeamClaude] Discarding refresh result for account "${safeLine(account.name, 64)}" — its tokens were replaced while the refresh was in flight`);
+          console.log(`[Team Mokea] Discarding refresh result for account "${safeLine(account.name, 64)}" — its tokens were replaced while the refresh was in flight`);
           return;
         }
         account.credential = newTokens.accessToken;
@@ -4823,10 +4823,10 @@ export class AccountManager {
         account.expiresAt = newTokens.expiresAt;
         account._lastRefreshAt = Date.now();
         account._deadRefreshToken = null; // this token works; clear any stale guard
-        console.log(`[TeamClaude] Token refreshed for account "${safeLine(account.name, 64)}"`);
+        console.log(`[Team Mokea] Token refreshed for account "${safeLine(account.name, 64)}"`);
         this._onTokenRefresh?.(accountIndex, newTokens);
       } catch (err) {
-        console.error(`[TeamClaude] Token refresh failed for "${safeLine(account.name, 64)}": ${err.message}`);
+        console.error(`[Team Mokea] Token refresh failed for "${safeLine(account.name, 64)}": ${err.message}`);
         // The refresh never reached the token endpoint: the account's own
         // routing proxy is down. The forward that follows would fail the same
         // way, so hold the account out of rotation now rather than after it.
@@ -4846,11 +4846,11 @@ export class AccountManager {
           // a token imported mid-refresh stays untouched and gets its own try.
           account._deadRefreshToken = sent;
           if (account.refreshToken !== sent) {
-            console.log(`[TeamClaude] Account "${safeLine(account.name, 64)}" received new tokens while its old refresh token was being rejected — keeping the new ones`);
+            console.log(`[Team Mokea] Account "${safeLine(account.name, 64)}" received new tokens while its old refresh token was being rejected — keeping the new ones`);
             return;
           }
           account.status = 'error';
-          console.error(`[TeamClaude] Account "${safeLine(account.name, 64)}" needs re-login (refresh token rejected) — run: teamclaude login`);
+          console.error(`[Team Mokea] Account "${safeLine(account.name, 64)}" needs re-login (refresh token rejected) — run: team-mokea login`);
           this._onAccountError?.(account);
         }
       } finally {
@@ -4921,12 +4921,12 @@ export class AccountManager {
       account.credentialRejections = (account.credentialRejections || 0) + 1;
       account.credentialRejectedUntil = Date.now() + seconds * 1000;
       const nth = account.credentialRejections > 1 ? `, ${account.credentialRejections} in a row` : '';
-      console.error(`[TeamClaude] Account "${safeLine(account.name, 64)}" held out of rotation for ${seconds}s: ${why}${nth} — it will be retried after that; if it keeps failing, check the key in the config`);
+      console.error(`[Team Mokea] Account "${safeLine(account.name, 64)}" held out of rotation for ${seconds}s: ${why}${nth} — it will be retried after that; if it keeps failing, check the key in the config`);
       return;
     }
     account.status = 'error';
-    const remedy = account.type === 'oauth' ? 'run: teamclaude login' : 'check the key in the config';
-    console.error(`[TeamClaude] Account "${safeLine(account.name, 64)}" taken out of rotation: ${why} — ${remedy}`);
+    const remedy = account.type === 'oauth' ? 'run: team-mokea login' : 'check the key in the config';
+    console.error(`[Team Mokea] Account "${safeLine(account.name, 64)}" taken out of rotation: ${why} — ${remedy}`);
     this._onAccountError?.(account);
   }
 
@@ -4943,7 +4943,7 @@ export class AccountManager {
     if (refreshToken) account.refreshToken = refreshToken;
     account.expiresAt = expiresAt;
     if (account.status === 'error') account.status = 'active';
-    console.log(`[TeamClaude] Updated tokens for account "${safeLine(account.name, 64)}"`);
+    console.log(`[Team Mokea] Updated tokens for account "${safeLine(account.name, 64)}"`);
     this._onTokenRefresh?.(accountIndex, {
       accessToken,
       refreshToken: account.refreshToken,
@@ -5144,7 +5144,7 @@ export class AccountManager {
         orgName: a.orgName || null,
         priority: a.priority || 0,
         // The attached TUI spreads these fields onto its own account objects
-        // and sorts its rows by this one, so without it `teamclaude attach`
+        // and sorts its rows by this one, so without it `team-mokea attach`
         // draws array order beside a server TUI drawing the arrangement.
         displayOrder: a.displayOrder ?? null,
         disabled: a.disabled || false,

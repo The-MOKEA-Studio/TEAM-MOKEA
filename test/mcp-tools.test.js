@@ -22,9 +22,9 @@ const accounts = () => [
 ];
 
 async function fixture({ mode = 'full', hooks = {}, fleet = accounts, options = {} } = {}) {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-mcp-tools-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-mcp-tools-'));
   const configPath = join(dir, 'config.json');
-  process.env.TEAMCLAUDE_CONFIG = configPath;
+  process.env.TEAM_MOKEA_CONFIG = configPath;
   const config = {
     proxy: { apiKey: 'tc-test', mcp: mode },
     switchThreshold: 0.98,
@@ -437,7 +437,7 @@ test('a write is logged once it has happened; a refused one says it was refused'
   }
   const audit = lines.filter(l => l.includes('] MCP '));
   assert.equal(audit.length, 2, lines.join('\n'));
-  for (const line of audit) assert.match(line, /^\[TeamClaude\] MCP \w+ by ci refused \(/, line);
+  for (const line of audit) assert.match(line, /^\[Team Mokea\] MCP \w+ by ci refused \(/, line);
   assert.match(audit[1], /nobody@example\.com/);
 });
 
@@ -456,8 +456,8 @@ test('every write is logged with the tool, the caller and what changed', async (
   } finally {
     console.log = original;
   }
-  assert.ok(lines.some(l => /\[TeamClaude\] MCP set_threshold .*ci.*75/.test(l)), lines.join('\n'));
-  assert.ok(lines.some(l => /\[TeamClaude\] MCP switch_account .*ci.*alice@example\.com/.test(l)), lines.join('\n'));
+  assert.ok(lines.some(l => /\[Team Mokea\] MCP set_threshold .*ci.*75/.test(l)), lines.join('\n'));
+  assert.ok(lines.some(l => /\[Team Mokea\] MCP switch_account .*ci.*alice@example\.com/.test(l)), lines.join('\n'));
   assert.equal(lines.some(l => l.startsWith('forged')), false, 'a client name cannot start a line of its own');
   assert.ok(lines.some(l => l.includes('ci forged')), lines.join('\n'));
 });

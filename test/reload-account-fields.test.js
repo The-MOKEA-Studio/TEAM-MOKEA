@@ -4,11 +4,11 @@ import http from 'node:http';
 import { writeFile, readFile } from 'node:fs/promises';
 import { spawnServer, closedPort } from '../test-helpers/spawn-server.js';
 
-// Live reload (POST /teamclaude/reload → syncAccountsFromDisk) must pick up a
+// Live reload (POST /team-mokea/reload → syncAccountsFromDisk) must pick up a
 // per-account `upstream`/`modelMap` edit, the same way it already picks up
 // credential, priority and enable/disable changes — server.js reads both fields
 // off the manager's account object per request. These drive the real server as
-// a subprocess against a throwaway TEAMCLAUDE_CONFIG; the stub upstream is the
+// a subprocess against a throwaway TEAM_MOKEA_CONFIG; the stub upstream is the
 // witness: it can only receive the request (with the mapped model) if the
 // reload actually carried the fields onto the running account.
 
@@ -56,7 +56,7 @@ async function withServer(fn) {
 }
 
 async function reload(proxyPort) {
-  const res = await fetch(`http://127.0.0.1:${proxyPort}/teamclaude/reload`, { method: 'POST' });
+  const res = await fetch(`http://127.0.0.1:${proxyPort}/team-mokea/reload`, { method: 'POST' });
   assert.equal(res.status, 200, await res.text());
 }
 

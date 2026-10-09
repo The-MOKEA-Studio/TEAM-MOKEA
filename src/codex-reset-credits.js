@@ -731,7 +731,7 @@ export class ResetCreditRedeemer {
       // nothing was sent, so the fleet has nothing to be careful of.
       const why = fresh.error || 'ran out of the redeem budget';
       state.cooldownUntil = now + RETRY_COOLDOWN_MS;
-      this.log(`[TeamClaude] Codex rate-limit reset on "${name}" stopped before redeeming — ${why}`);
+      this.log(`[Team Mokea] Codex rate-limit reset on "${name}" stopped before redeeming — ${why}`);
       return { redeemed: false, reason: why };
     }
 
@@ -739,7 +739,7 @@ export class ResetCreditRedeemer {
     // after upstream had already acted is indistinguishable from one that never
     // arrived, and replaying the key is what makes upstream say so.
     state.redeemRequestId ||= randomUUID();
-    this.log(`[TeamClaude] Redeeming a free Codex rate-limit reset on "${name}" — ${verdict.reason}`);
+    this.log(`[Team Mokea] Redeeming a free Codex rate-limit reset on "${name}" — ${verdict.reason}`);
 
     const result = await this.consumeFn(account,
       { creditId: verdict.creditId, redeemRequestId: state.redeemRequestId },
@@ -757,7 +757,7 @@ export class ResetCreditRedeemer {
       // first is exactly how one becomes two.
       state.cooldownUntil = now + RETRY_COOLDOWN_MS;
       this.fleetCooldownUntil = Math.max(this.fleetCooldownUntil, now + RETRY_COOLDOWN_MS);
-      this.log(`[TeamClaude] Codex rate-limit reset failed on "${name}" — ${safeLine(result.error, 120)}; it may still have been spent, so the pool holds off`);
+      this.log(`[Team Mokea] Codex rate-limit reset failed on "${name}" — ${safeLine(result.error, 120)}; it may still have been spent, so the pool holds off`);
       return { redeemed: false, reason: `redeem failed (${result.error})` };
     }
 
@@ -778,13 +778,13 @@ export class ResetCreditRedeemer {
       // does fail.
       this.fleetCooldownUntil = Math.max(this.fleetCooldownUntil, now + SUCCESS_COOLDOWN_MS);
       const windows = result.windowsReset || 0;
-      this.log(`[TeamClaude] Redeemed a free Codex rate-limit reset on "${name}" — ${windows} window(s) reset (${result.code})`);
+      this.log(`[Team Mokea] Redeemed a free Codex rate-limit reset on "${name}" — ${windows} window(s) reset (${result.code})`);
       await this._refresh(account, name, deadline);
       return { redeemed: true, reason: verdict.reason, code: result.code, windowsReset: windows };
     }
 
     state.cooldownUntil = now + RETRY_COOLDOWN_MS;
-    this.log(`[TeamClaude] Codex rate-limit reset declined on "${name}" — upstream said "${result?.code || 'nothing'}", no credit spent`);
+    this.log(`[Team Mokea] Codex rate-limit reset declined on "${name}" — upstream said "${result?.code || 'nothing'}", no credit spent`);
     return { redeemed: false, reason: `upstream declined (${result?.code || 'no code'})` };
   }
 
@@ -811,12 +811,12 @@ export class ResetCreditRedeemer {
     this.am.clearRateLimited(account.index);
     const timeoutMs = this._timeLeft(deadline);
     if (timeoutMs <= 0) {
-      this.log(`[TeamClaude] Out of time to re-read Codex quota for "${name}" after the reset — it will be re-learned from traffic`);
+      this.log(`[Team Mokea] Out of time to re-read Codex quota for "${name}" after the reset — it will be re-learned from traffic`);
       return;
     }
     const usage = await this.usageFn(account, { timeoutMs }).catch(() => null);
     if (!usage || usage.error) {
-      this.log(`[TeamClaude] Could not re-read Codex quota for "${name}" after the reset — it will be re-learned from traffic`);
+      this.log(`[Team Mokea] Could not re-read Codex quota for "${name}" after the reset — it will be re-learned from traffic`);
       return;
     }
     this.am.applyCodexUsageData(account.index, usage);

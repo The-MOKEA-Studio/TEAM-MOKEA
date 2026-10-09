@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 import { AccountManager } from '../src/account-manager.js';
 import { createProxyServer } from '../src/server.js';
 
-// POST /teamclaude/switch is the headless equivalent of picking an account with
+// POST /team-mokea/switch is the headless equivalent of picking an account with
 // 's' in the TUI: both only move the manager's currentIndex. The TUI is not
 // reachable when the proxy runs as a background service, which is what this
 // endpoint exists for. currentIndex is a weak preference — selection drops it
@@ -22,7 +22,7 @@ const ACCTS = [
 ];
 
 async function post(port, body) {
-  const res = await fetch(`http://127.0.0.1:${port}/teamclaude/switch`, {
+  const res = await fetch(`http://127.0.0.1:${port}/team-mokea/switch`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body,
@@ -63,7 +63,7 @@ test('switch accepts the same account forms as a pin (uuid, bare email)', async 
 test('the status endpoint reports the switched account', async () => {
   await withServer(async (am, port) => {
     await post(port, JSON.stringify({ account: 'bob@example.com (Acme)' }));
-    const res = await fetch(`http://127.0.0.1:${port}/teamclaude/status`);
+    const res = await fetch(`http://127.0.0.1:${port}/team-mokea/status`);
     const status = await res.json();
     assert.equal(status.currentAccount, 'bob@example.com (Acme)');
     assert.equal(am.currentIndex, 1);
@@ -241,7 +241,7 @@ test('a successful switch is logged, and says so when the target is ineligible',
 function remoteRequest(server, { headers = {}, body = '{}' } = {}) {
   const req = Readable.from([Buffer.from(body)]);
   req.method = 'POST';
-  req.url = '/teamclaude/switch';
+  req.url = '/team-mokea/switch';
   req.headers = headers;
   req.socket = { remoteAddress: '203.0.113.9' };
 

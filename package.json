@@ -1,12 +1,12 @@
 {
-  "name": "@karpeleslab/teamclaude",
+  "name": "@the-mokea-studio/team-mokea",
   "version": "1.1.24",
   "description": "Multi-account proxy for Claude Code and Codex: pools Claude Max, ChatGPT/Codex, API-key and third-party backend accounts, and rotates on quota",
   "type": "module",
   "main": "src/index.js",
   "bin": {
-    "teamclaude": "src/index.js",
-    "teamrouter": "src/index.js"
+    "team-mokea": "src/index.js",
+    "teamclaude": "src/index.js"
   },
   "files": [
     "src/"
@@ -36,12 +36,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/KarpelesLab/teamclaude.git"
+    "url": "git+https://github.com/The-MOKEA-Studio/TEAM-MOKEA.git"
   },
   "bugs": {
-    "url": "https://github.com/KarpelesLab/teamclaude/issues"
+    "url": "https://github.com/The-MOKEA-Studio/TEAM-MOKEA/issues"
   },
-  "homepage": "https://github.com/KarpelesLab/teamclaude#readme",
+  "homepage": "https://github.com/The-MOKEA-Studio/TEAM-MOKEA#readme",
   "engines": {
     "node": ">=20.0.0"
   },

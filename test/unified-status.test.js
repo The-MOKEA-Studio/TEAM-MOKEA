@@ -4,7 +4,7 @@ import { AccountManager } from '../src/account-manager.js';
 import { unavailableLine } from '../src/status-renderer.js';
 
 // Upstream reports its own verdict in `anthropic-ratelimit-unified-status`.
-// TeamClaude stored and displayed it but never acted on it, so an operator could
+// Team Mokea stored and displayed it but never acted on it, so an operator could
 // see `allowed` next to an account the proxy was refusing to use, with no way to
 // tell whose decision that was (issue #166).
 

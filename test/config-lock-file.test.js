@@ -20,21 +20,21 @@ import { join } from 'node:path';
 // short one, so it is fast and its lower bound is the only timing it asserts.
 async function withConfigDir(fn, { lockWaitMs = null } = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'tc-lock-'));
-  const prev = process.env.TEAMCLAUDE_CONFIG;
-  const prevWait = process.env.TEAMCLAUDE_CONFIG_LOCK_WAIT_MS;
-  const path = join(dir, 'teamclaude.json');
-  process.env.TEAMCLAUDE_CONFIG = path;
-  if (lockWaitMs != null) process.env.TEAMCLAUDE_CONFIG_LOCK_WAIT_MS = String(lockWaitMs);
-  else delete process.env.TEAMCLAUDE_CONFIG_LOCK_WAIT_MS;
+  const prev = process.env.TEAM_MOKEA_CONFIG;
+  const prevWait = process.env.TEAM_MOKEA_CONFIG_LOCK_WAIT_MS;
+  const path = join(dir, 'team-mokea.json');
+  process.env.TEAM_MOKEA_CONFIG = path;
+  if (lockWaitMs != null) process.env.TEAM_MOKEA_CONFIG_LOCK_WAIT_MS = String(lockWaitMs);
+  else delete process.env.TEAM_MOKEA_CONFIG_LOCK_WAIT_MS;
   try {
     const cfg = await import('../src/config.js');
     await writeFile(path, JSON.stringify({ proxy: { port: 1, apiKey: 'tc-test' }, upstreamProxy: false, accounts: [] }));
     await fn({ dir, cfg, path, lockPath: `${path}.lock` });
   } finally {
-    if (prev === undefined) delete process.env.TEAMCLAUDE_CONFIG;
-    else process.env.TEAMCLAUDE_CONFIG = prev;
-    if (prevWait === undefined) delete process.env.TEAMCLAUDE_CONFIG_LOCK_WAIT_MS;
-    else process.env.TEAMCLAUDE_CONFIG_LOCK_WAIT_MS = prevWait;
+    if (prev === undefined) delete process.env.TEAM_MOKEA_CONFIG;
+    else process.env.TEAM_MOKEA_CONFIG = prev;
+    if (prevWait === undefined) delete process.env.TEAM_MOKEA_CONFIG_LOCK_WAIT_MS;
+    else process.env.TEAM_MOKEA_CONFIG_LOCK_WAIT_MS = prevWait;
   }
 }
 
@@ -69,7 +69,7 @@ test('two concurrent atomicConfigUpdate calls both land', async () => {
     const on = await readJson(path);
     assert.equal(on.first, 1);
     assert.equal(on.second, 2);
-    assert.deepEqual(await readdir(dir), ['teamclaude.json'], 'no lock or temp file remains');
+    assert.deepEqual(await readdir(dir), ['team-mokea.json'], 'no lock or temp file remains');
   });
 });
 
@@ -80,7 +80,7 @@ test('a lock older than 10 s is broken even though its pid is alive', async () =
     try { await cfg.saveConfig({ fresh: true }); } finally { restore(); }
     assert.deepEqual(warnings, [], 'a stale lock is broken, not waited out and bypassed');
     assert.deepEqual(await readJson(path), { fresh: true });
-    assert.deepEqual(await readdir(dir), ['teamclaude.json'], 'the stale lock is gone');
+    assert.deepEqual(await readdir(dir), ['team-mokea.json'], 'the stale lock is gone');
   });
 });
 
@@ -91,7 +91,7 @@ test('a fresh lock whose pid is dead is broken', async () => {
     try { await cfg.saveConfig({ fresh: true }); } finally { restore(); }
     assert.deepEqual(warnings, [], 'a dead holder\'s lock is broken, not waited out and bypassed');
     assert.deepEqual(await readJson(path), { fresh: true });
-    assert.deepEqual(await readdir(dir), ['teamclaude.json']);
+    assert.deepEqual(await readdir(dir), ['team-mokea.json']);
   });
 });
 
@@ -131,17 +131,17 @@ test('a live lock held by another process delays the write until it is released'
     assert.deepEqual(warnings, [], 'the write went through on the release, not by giving up on the lock');
     assert.deepEqual(await readJson(path), { fresh: true });
     assert.equal(await exited, 0, 'the holder unlinked its own lock; nobody removed it from under it');
-    assert.deepEqual(await readdir(dir), ['teamclaude.json']);
+    assert.deepEqual(await readdir(dir), ['team-mokea.json']);
   }, { lockWaitMs: 600_000 });
 });
 
 test('the lock is released after a success and after a throwing mutator', async () => {
   await withConfigDir(async ({ dir, cfg, path }) => {
     await cfg.atomicConfigUpdate(config => { config.ok = true; });
-    assert.deepEqual(await readdir(dir), ['teamclaude.json'], 'released after success');
+    assert.deepEqual(await readdir(dir), ['team-mokea.json'], 'released after success');
 
     await assert.rejects(cfg.atomicConfigUpdate(() => { throw new Error('boom'); }), /boom/);
-    assert.deepEqual(await readdir(dir), ['teamclaude.json'], 'released after a throw');
+    assert.deepEqual(await readdir(dir), ['team-mokea.json'], 'released after a throw');
     assert.equal((await readJson(path)).ok, true, 'the failed update wrote nothing');
 
     // And the next writer is not held up by anything the failure left behind.
@@ -171,7 +171,7 @@ test('a lock that stays held past the wait budget is bypassed with one warning, 
     }
     assert.deepEqual(await readJson(path), { fresh: true }, 'the write still landed');
     assert.equal(warnings.length, 1, warnings.join('\n'));
-    assert.match(warnings[0], /teamclaude\.json\.lock is still held by another process after 200ms/);
+    assert.match(warnings[0], /team-mokea\.json\.lock is still held by another process after 200ms/);
     assert.deepEqual(await readJson(lockPath), body, 'the other holder\'s lock was not touched');
   }, { lockWaitMs: 200 });
 });

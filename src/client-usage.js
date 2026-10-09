@@ -196,7 +196,7 @@ export class ClientUsageTracker {
   }
 
   /**
-   * Plain-object snapshot for /teamclaude/status and the dashboard (lastUsed as
+   * Plain-object snapshot for /team-mokea/status and the dashboard (lastUsed as
    * ISO string, matching how the status endpoint reports times), carrying the
    * rolled-up windows rather than the slots they were summed from: a reader
    * wants two figures per client, and the tally behind them is up to a hundred

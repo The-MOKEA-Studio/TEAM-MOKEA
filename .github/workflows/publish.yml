@@ -9,7 +9,7 @@ name: Publish
 # npm mints a short-lived credential from the GitHub OIDC token at publish time,
 # and provenance is attached automatically. This requires a one-time setup on
 # npmjs.com: on the package's Settings → Trusted Publisher, add a GitHub Actions
-# publisher for owner KarpelesLab, repo teamclaude, workflow "publish.yml".
+# publisher for owner KarpelesLab, repo team-mokea, workflow "publish.yml".
 on:
   push:
     branches: [master]

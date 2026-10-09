@@ -6,17 +6,17 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// `teamclaude route` shares the module-level dispatch with every other command:
+// `team-mokea route` shares the module-level dispatch with every other command:
 // the switch awaits the command body, so anything the body references must be
 // initialized by the time the await suspends. These drive the real CLI as a
-// subprocess against a throwaway TEAMCLAUDE_CONFIG — the user's real config is
+// subprocess against a throwaway TEAM_MOKEA_CONFIG — the user's real config is
 // never touched, and the exercised paths are read-only (they exit 1 before any
 // saveConfig).
 
 const cliPath = fileURLToPath(new URL('../src/index.js', import.meta.url));
 
 async function writeConfig() {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-route-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-route-'));
   const path = join(dir, 'config.json');
   await writeFile(path, JSON.stringify({
     proxy: { port: 3456, apiKey: 'tc-test' },
@@ -29,7 +29,7 @@ async function writeConfig() {
 
 function runCli(configPath, cliArgs) {
   const child = spawn(process.execPath, [cliPath, ...cliArgs], {
-    env: { ...process.env, TEAMCLAUDE_CONFIG: configPath },
+    env: { ...process.env, TEAM_MOKEA_CONFIG: configPath },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let stdout = '';
@@ -49,7 +49,7 @@ test('route with an unknown subcommand prints usage and exits 1', async () => {
   const configPath = await writeConfig();
   const res = await runCli(configPath, ['route', 'bogus-subcommand']);
   assert.equal(res.code, 1, res.stderr);
-  assert.match(res.stderr, /Usage: teamclaude route/);
+  assert.match(res.stderr, /Usage: team-mokea route/);
   assert.doesNotMatch(res.stdout + res.stderr, /ReferenceError/);
 });
 

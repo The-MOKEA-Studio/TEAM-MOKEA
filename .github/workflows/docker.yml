@@ -105,7 +105,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=pr
           labels: |
-            org.opencontainers.image.title=teamclaude
+            org.opencontainers.image.title=team-mokea
             org.opencontainers.image.description=Multi-account Claude proxy with automatic quota-based rotation
 
       - name: Build and push

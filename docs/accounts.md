@@ -1,11 +1,11 @@
 # Accounts
 
-Adding, naming, and managing the accounts TeamClaude rotates between.
+Adding, naming, and managing the accounts Team Mokea rotates between.
 
 ## OAuth login (recommended)
 
 ```bash
-teamclaude login
+team-mokea login
 ```
 
 Opens your browser and uses the same OAuth flow as Claude Code. Auto-detects the account email and subscription tier. Logging in with the same account again updates its credentials.
@@ -14,7 +14,7 @@ Run it once per account. You can add accounts while the server is running — pr
 
 If the profile cannot be identified, login stops without adding a placeholder
 account. Retry after confirming the credential is valid, or pass
-`teamclaude login --name <name>` to add it without profile detection. A
+`team-mokea login --name <name>` to add it without profile detection. A
 credential the upstream rejects with 401 (and that cannot be refreshed) is
 refused regardless of `--name` — log in again to get a fresh one.
 
@@ -24,13 +24,13 @@ If you already have Claude Code set up, import its credentials directly:
 
 ```bash
 claude /login           # log into an account in Claude Code
-teamclaude import       # import its credentials
+team-mokea import       # import its credentials
 ```
 
 Re-importing the same account updates its credentials. You can also import from a custom path:
 
 ```bash
-teamclaude import --from /path/to/credentials.json
+team-mokea import --from /path/to/credentials.json
 ```
 
 Automatic naming requires a successful profile lookup. If credentials are
@@ -39,27 +39,27 @@ placeholder account. Pass `--name <name>` to explicitly import without profile
 detection. An expired access token is refreshed on import when the file carries
 a refresh token; a credential the upstream rejects with 401 (and that cannot be
 refreshed) is refused regardless of `--name` — run `claude /login` and import
-again, or `teamclaude login`.
+again, or `team-mokea login`.
 
 ## Delegating credentials to a file (`importFrom`)
 
-Instead of storing an OAuth account's tokens in `teamclaude.json`, an account entry can name the file to read them from:
+Instead of storing an OAuth account's tokens in `team-mokea.json`, an account entry can name the file to read them from:
 
 ```json
 { "name": "me@example.com", "type": "oauth", "importFrom": "~/.claude/.credentials.json" }
 ```
 
-The tokens (`accessToken`, `refreshToken`, `expiresAt`) are read from that file at startup and again on every config reload, so a login refreshed by Claude Code itself is picked up without re-running `teamclaude import`. Every other field on the entry (`priority`, `disabled`, `upstream`, `modelMap`, …) is kept as written. A file with no token skips the account with a message rather than sending an empty credential upstream. `teamclaude import` is the alternative: it copies the tokens into the config once.
+The tokens (`accessToken`, `refreshToken`, `expiresAt`) are read from that file at startup and again on every config reload, so a login refreshed by Claude Code itself is picked up without re-running `team-mokea import`. Every other field on the entry (`priority`, `disabled`, `upstream`, `modelMap`, …) is kept as written. A file with no token skips the account with a message rather than sending an empty credential upstream. `team-mokea import` is the alternative: it copies the tokens into the config once.
 
 ## API key
 
 For Anthropic API key accounts (billed via Console):
 
 ```bash
-teamclaude login --api
+team-mokea login --api
 ```
 
-A key is **metered** — every token it serves is billed — while a subscription's quota is paid for whether it is spent or not. So a key is added at `priority: 100`, the fallback tier: rotation reaches it only when every account ahead of it is spent, and leaves it the moment one of them has quota again (a higher-priority account preempts on the next selection, so a reset elsewhere moves traffic back off the key). Pass `--priority <n>` to place it yourself; `--priority 0` puts it level with the subscriptions, which is where an added key sat before 1.1.23. A key already in the config keeps whatever priority it has: `teamclaude priority <name> 100` (or `--last`) moves it to the back.
+A key is **metered** — every token it serves is billed — while a subscription's quota is paid for whether it is spent or not. So a key is added at `priority: 100`, the fallback tier: rotation reaches it only when every account ahead of it is spent, and leaves it the moment one of them has quota again (a higher-priority account preempts on the next selection, so a reset elsewhere moves traffic back off the key). Pass `--priority <n>` to place it yourself; `--priority 0` puts it level with the subscriptions, which is where an added key sat before 1.1.23. A key already in the config keeps whatever priority it has: `team-mokea priority <name> 100` (or `--last`) moves it to the back.
 
 ### When the key is rejected (401)
 
@@ -78,36 +78,36 @@ One email can hold multiple accounts across different organizations (e.g. corp +
 Pass `--org <name|uuid>` to resolve a bare email when it is ambiguous:
 
 ```bash
-teamclaude remove user@example.com --org Acme
+team-mokea remove user@example.com --org Acme
 ```
 
 ## Managing accounts
 
 ```bash
-teamclaude accounts             # list accounts with tier and token status
-teamclaude accounts -v          # also show token expiry times
-teamclaude remove <name>        # remove an account (by name or email)
-teamclaude disable <name>       # temporarily exclude it from rotation
-teamclaude enable <name>        # re-enable it (also clears a stuck error state)
-teamclaude priority <name> 1    # rotation preference, lower = preferred
-teamclaude priority <name> --first
-teamclaude priority <name> --last
-teamclaude routing <name> <url> # route ALL of the account's traffic via its own proxy
-teamclaude routing <name> none  # clear it
-teamclaude routing <name> --check  # test the proxy the account already has
+team-mokea accounts             # list accounts with tier and token status
+team-mokea accounts -v          # also show token expiry times
+team-mokea remove <name>        # remove an account (by name or email)
+team-mokea disable <name>       # temporarily exclude it from rotation
+team-mokea enable <name>        # re-enable it (also clears a stuck error state)
+team-mokea priority <name> 1    # rotation preference, lower = preferred
+team-mokea priority <name> --first
+team-mokea priority <name> --last
+team-mokea routing <name> <url> # route ALL of the account's traffic via its own proxy
+team-mokea routing <name> none  # clear it
+team-mokea routing <name> --check  # test the proxy the account already has
 ```
 
-`login`, `import`, `enable`, `disable`, `priority` and `routing` notify a running server to reload, so credential, priority, enable/disable and routing changes are picked up live; the same reload (POST `/teamclaude/reload`, or **R** in the TUI) also applies hand edits to an account's `upstream`/`modelMap`. Account **removals** made on disk (`teamclaude remove` from another shell, or a hand edit) are applied by the same reload: a running account whose entry is gone from the file is dropped from the fleet, and the reload reports how many it added and how many it removed. An account added in the TUI is safe during the moment between its addition and its save — a reload that reads the file first leaves it alone rather than treating the missing row as a removal. Removing one from the TUI or through the [MCP endpoint](usage.md#mcp-endpoint)'s `remove_account` takes effect at once.
+`login`, `import`, `enable`, `disable`, `priority` and `routing` notify a running server to reload, so credential, priority, enable/disable and routing changes are picked up live; the same reload (POST `/team-mokea/reload`, or **R** in the TUI) also applies hand edits to an account's `upstream`/`modelMap`. Account **removals** made on disk (`team-mokea remove` from another shell, or a hand edit) are applied by the same reload: a running account whose entry is gone from the file is dropped from the fleet, and the reload reports how many it added and how many it removed. An account added in the TUI is safe during the moment between its addition and its save — a reload that reads the file first leaves it alone rather than treating the missing row as a removal. Removing one from the TUI or through the [MCP endpoint](usage.md#mcp-endpoint)'s `remove_account` takes effect at once.
 
 ## Syncing accounts across machines (callback.net)
 
 A pooled OAuth token lives a few days, and then has to be signed in again — on every machine that holds a copy. Sign each install in to [callback.net](https://www.callback.net/) instead, and they keep each other's tokens:
 
 ```bash
-teamclaude callback login      # prints a URL to approve in any browser (--no-browser to not open one)
-teamclaude callback status     # who this install is signed in as
-teamclaude callback sync       # reconcile the running server with the store now
-teamclaude callback logout     # revoke the session and stop syncing
+team-mokea callback login      # prints a URL to approve in any browser (--no-browser to not open one)
+team-mokea callback status     # who this install is signed in as
+team-mokea callback sync       # reconcile the running server with the store now
+team-mokea callback logout     # revoke the session and stop syncing
 ```
 
 The sign-in is a poll-token OAuth2 flow: the URL can be opened on any machine, so it works over SSH and in a container, and no local port is listened on. The session token is this install's own and lives beside the config (`<config>.callback.json`, mode `0600`), never in the config itself. Being signed in is the whole opt-in; there is no config key. `logout` turns it off.
@@ -120,20 +120,20 @@ While signed in, every **OAuth** account (Claude and Codex) is kept as one row o
 - **A token refresh** goes through the row's advisory lock, so one install renews and the rest adopt. A refresh rotates the token family, and two installs renewing one account at once would each invalidate the other's copy — which is exactly the "sign in again everywhere" this exists to end. With the lock taken, the row is read first (the lock answers with it): if it holds a token other than this install's, another install renewed or signed in since, and that token is adopted whatever its expiry; the provider is not called. The one exception is a row this install wrote itself with an older token than it holds now, a renewal of its own that never reached the store, which is renewed over rather than taken back. Refused, another install is renewing: a token that is still good (the refresh runs five minutes ahead of expiry) is simply kept, the renewal arrives through the store, and the next request asks again. A token that has already expired, or that upstream just rejected, waits instead, re-reading every 5 seconds for 30 seconds, adopts what the holder stores, and otherwise tries the lock again; a lock that nobody releases times out after 30 seconds. A store that cannot be reached never stops a refresh: the account is renewed without it and stored on the next pass.
 - **Every other token change** on an install — a `login`, an `import`, a refresh Claude Code made itself that the proxy relayed — is stored the same way.
 - **An account in error never writes.** Once upstream has rejected an account's token (status `error`, "needs re-login"), what this install holds is dead, so it is never stored — not by a pass, not as a token change — however late its `expiresAt`. It only reads: the moment it goes into error, and at every pass after, a row holding a different token (another install renewed it, or you signed in there) is adopted whatever its expiry, and the account is back in rotation.
-- **Removal travels.** `teamclaude remove` (or the TUI, or the MCP endpoint) writes a tombstone into the account's row — `{"_deleted": "<time>"}` — and every other install removes the account at its next pass. A token refresh on an install that has not yet seen the tombstone still goes through, but never writes over it; only an explicit sign-in (`login`, `import`) does, which is how a removed account comes back everywhere. A tombstone older than a week is deleted by whichever pass sees it.
+- **Removal travels.** `team-mokea remove` (or the TUI, or the MCP endpoint) writes a tombstone into the account's row — `{"_deleted": "<time>"}` — and every other install removes the account at its next pass. A token refresh on an install that has not yet seen the tombstone still goes through, but never writes over it; only an explicit sign-in (`login`, `import`) does, which is how a removed account comes back everywhere. A tombstone older than a week is deleted by whichever pass sees it.
 
-`teamclaude status --json` carries the sync's state under `callbackSync`: the last pass, its error if it failed, how many accounts the store holds and how many tombstones.
+`team-mokea status --json` carries the sync's state under `callbackSync`: the last pass, its error if it failed, how many accounts the store holds and how many tombstones.
 
 ## Per-account routing (`routing`)
 
 One account can leave through its own proxy while the rest of the fleet goes direct (or through the fleet [upstream proxy](proxy-modes.md#upstream-proxy)):
 
 ```bash
-teamclaude login --name "waffles@waffle.com" --routing "socks5h://alice:s3cret@proxy.example.com:1080"
-teamclaude routing waffles@waffle.com socks5h://alice:s3cret@proxy.example.com:1080
-teamclaude routing waffles@waffle.com        # show it (password masked)
-teamclaude routing waffles@waffle.com --check  # show it, and test the proxy
-teamclaude routing waffles@waffle.com none   # clear it
+team-mokea login --name "waffles@waffle.com" --routing "socks5h://alice:s3cret@proxy.example.com:1080"
+team-mokea routing waffles@waffle.com socks5h://alice:s3cret@proxy.example.com:1080
+team-mokea routing waffles@waffle.com        # show it (password masked)
+team-mokea routing waffles@waffle.com --check  # show it, and test the proxy
+team-mokea routing waffles@waffle.com none   # clear it
 ```
 
 Or in the config:
@@ -156,13 +156,13 @@ Schemes:
 
 Optional `user:pass@` auth works for `http` and `socks5`/`socks5h` (SOCKS4 carries a username only, so a password there is refused with a message). A bare `host:port` is read as `http`. The `h`/`a` forms are usually what you want for a remote exit: the proxy resolves the hostname, so the exit's DNS view matches its geography.
 
-The value is validated when the account is read: a bad URL is reported once and ignored, never fatal, and so is a URL that names this server's own address, which would send the account's requests straight back into the proxy (the CLI, the TUI and the MCP tool refuse to store one). It shows masked in `teamclaude accounts`, `status`, the TUI and the web dashboard, and the reload note above applies to disk edits and `routing` changes alike. The proxy password is masked everywhere it is printed, error messages and the MCP write log included. `teamclaude api --account <name>` sends the account's credential, so it leaves through the account's proxy as well. Changed alongside: `teamclaude api` used to bypass the fleet [upstream proxy](proxy-modes.md#upstream-proxy) too, and now goes through it when one is configured, like every other call TeamClaude makes with an account's credential.
+The value is validated when the account is read: a bad URL is reported once and ignored, never fatal, and so is a URL that names this server's own address, which would send the account's requests straight back into the proxy (the CLI, the TUI and the MCP tool refuse to store one). It shows masked in `team-mokea accounts`, `status`, the TUI and the web dashboard, and the reload note above applies to disk edits and `routing` changes alike. The proxy password is masked everywhere it is printed, error messages and the MCP write log included. `team-mokea api --account <name>` sends the account's credential, so it leaves through the account's proxy as well. Changed alongside: `team-mokea api` used to bypass the fleet [upstream proxy](proxy-modes.md#upstream-proxy) too, and now goes through it when one is configured, like every other call Team Mokea makes with an account's credential.
 
 Besides the CLI there are two more places to set it. In the TUI, **`g`** then **Account proxy** picks an account and asks for the URL (`none` clears it). Over the [MCP endpoint](usage.md#mcp-endpoint) the tool is `set_account_routing`.
 
 ### What is not routed
 
-Routing covers what TeamClaude does with the account's own credential. Two kinds of traffic are outside that, and both keep the fleet path:
+Routing covers what Team Mokea does with the account's own credential. Two kinds of traffic are outside that, and both keep the fleet path:
 
 - Claude Code's own identity calls (`/api/oauth/*`, `/v1/code/*`, the Remote Control bridge's `/v1/environments/*`, `/v1/sessions/*`, `/v2/session_ingress/*` and `/v2/ccr-sessions/*`, and its token refresh) are relayed with the credential of the Claude Code login, never with a pooled account's, so they belong to no account here. That holds even when the login is the same person as a routed account.
 - A sign-in or import that names no account. Which account it belongs to is only known once the profile has been read, so that lookup cannot use a proxy it has not found yet. Pass `--name` (or `--routing`) and it can.
@@ -172,7 +172,7 @@ Routing covers what TeamClaude does with the account's own credential. Two kinds
 `login --routing`, `import --routing`, `routing <name> <url>` and the TUI row all open a tunnel through the proxy to the account's upstream and finish the TLS handshake before they change anything. No request is sent, so the only credential that leaves the machine is the proxy's own. If the test fails the command stops and nothing is saved:
 
 ```
-$ teamclaude routing waffles@waffle.com socks5h://alice:wrong@proxy.example.com:1080
+$ team-mokea routing waffles@waffle.com socks5h://alice:wrong@proxy.example.com:1080
 Routing proxy check failed: account routing proxy socks5h://alice:***@proxy.example.com:1080: SOCKS5 authentication failed
 Nothing was changed. Fix the proxy or the URL, or pass --no-check to skip this test.
 ```
@@ -183,11 +183,11 @@ For an OAuth login this is what saves the sign-in. The authorisation code works 
 
 ### Signing a routed account in again
 
-`teamclaude login --name "waffles@waffle.com"` reuses the routing that account already has, so a re-login leaves through the same proxy without the URL being typed again. The stored value is only borrowed for the sign-in and is left as it was.
+`team-mokea login --name "waffles@waffle.com"` reuses the routing that account already has, so a re-login leaves through the same proxy without the URL being typed again. The stored value is only borrowed for the sign-in and is left as it was.
 
-If that proxy is dead and the account needs a new sign-in now, add `--routing none`. That signs in without a proxy and clears the stored routing, the same way `teamclaude routing <name> none` does.
+If that proxy is dead and the account needs a new sign-in now, add `--routing none`. That signs in without a proxy and clears the stored routing, the same way `team-mokea routing <name> none` does.
 
-Without `--name`, TeamClaude cannot know which account a sign-in belongs to until it is over. If it turns out to be a routed account, the command says that the sign-in went out unrouted and how to route the next one.
+Without `--name`, Team Mokea cannot know which account a sign-in belongs to until it is over. If it turns out to be a routed account, the command says that the sign-in went out unrouted and how to route the next one.
 
 ### When the proxy is down
 
@@ -202,11 +202,11 @@ Accounts can also be added, removed and reordered from the TUI settings screen: 
 
 ### Signing in again from the TUI
 
-An OAuth account whose refresh token upstream has rejected — typically because the same account was signed in somewhere else, which rotates the token and kills the copy TeamClaude holds — shows as `error` and stays that way until someone signs in again. Press **`l`** on the dashboard: the picker opens on the first account in `error`, and **Enter** opens the provider's sign-in page in your browser (Claude or Codex, by the account's provider). The dashboard stays live while it waits, up to two minutes.
+An OAuth account whose refresh token upstream has rejected — typically because the same account was signed in somewhere else, which rotates the token and kills the copy Team Mokea holds — shows as `error` and stays that way until someone signs in again. Press **`l`** on the dashboard: the picker opens on the first account in `error`, and **Enter** opens the provider's sign-in page in your browser (Claude or Codex, by the account's provider). The dashboard stays live while it waits, up to two minutes.
 
-The tokens go to the account the browser actually signed in as, matched by identity exactly as `teamclaude login` does — not to whichever row was highlighted. Sign in as a different account and that account is updated (or added) instead, the activity pane says so, and the row you picked still needs its login.
+The tokens go to the account the browser actually signed in as, matched by identity exactly as `team-mokea login` does — not to whichever row was highlighted. Sign in as a different account and that account is updated (or added) instead, the activity pane says so, and the row you picked still needs its login.
 
-The key needs a browser on the machine running the server, so it is not offered in `teamclaude attach`, and on a headless host `teamclaude login --token` remains the way.
+The key needs a browser on the machine running the server, so it is not offered in `team-mokea attach`, and on a headless host `team-mokea login --token` remains the way.
 
 **Reorder accounts** sets the order the account list is drawn in — `↑`/`↓` pick an account, `←`/`→` move it up and down, each move saved as you make it. It writes a `displayOrder` on the entry and touches nothing else: an account keeps its place in the `accounts` array, so route pins, session pins and `TC_ACCT` all go on naming the same accounts, and rotation order stays `priority`'s business alone. An account with no `displayOrder` — every account, until the first time you arrange them, and every one added afterwards — lists after the ones that have one, which is where a newly added account appeared anyway. A [third-party backend](#third-party-backend-accounts) served by a local process is infrastructure rather than a seat to rotate between: the TUI keeps those at the end of the list, and the screen leaves them there.
 
@@ -221,7 +221,7 @@ Hand edits are fine. Leave the `id` alone and it keeps working; delete it and a 
 An OpenAI Codex subscription can be pooled alongside your Claude accounts.
 
 ```bash
-teamclaude login --codex     # browser sign-in, repeat per account
+team-mokea login --codex     # browser sign-in, repeat per account
 ```
 
 Add `--no-browser` to print the URL instead of opening one, and `--name` to
@@ -247,13 +247,13 @@ CODEX_HOME=~/.codex-second codex login
   "importFrom": "~/.codex-second/auth.json" }
 ```
 
-Then tell Codex to reach TeamClaude instead of OpenAI, in `~/.codex/config.toml`:
+Then tell Codex to reach Team Mokea instead of OpenAI, in `~/.codex/config.toml`:
 
 ```toml
-model_provider = "teamclaude"
+model_provider = "team-mokea"
 
-[model_providers.teamclaude]
-name = "teamclaude"
+[model_providers.team-mokea]
+name = "team-mokea"
 base_url = "http://127.0.0.1:3456/backend-api/codex"
 wire_api = "responses"
 ```
@@ -264,7 +264,7 @@ MITM mode intercepts `chatgpt.com` as well as `api.anthropic.com`, so a Codex CL
 launched behind the proxy is pooled with no `~/.codex/config.toml` change at all:
 
 ```bash
-eval "$(teamclaude env)"   # HTTPS_PROXY + NODE_EXTRA_CA_CERTS
+eval "$(team-mokea env)"   # HTTPS_PROXY + NODE_EXTRA_CA_CERTS
 codex
 ```
 
@@ -298,7 +298,7 @@ against the ChatGPT backend, not the OpenAI API platform — pointed at
 `api.openai.com` the same token is refused with `Missing scopes:
 api.responses.write`. Codex appends `/responses` and `/models` to `base_url`,
 so this suffix makes it emit exactly the paths the ChatGPT backend expects and
-TeamClaude forwards them verbatim.
+Team Mokea forwards them verbatim.
 
 ### How it shares the port with Claude
 
@@ -312,7 +312,7 @@ and one TUI.
 
 - The credential is injected as `Authorization: Bearer`, plus a
   `ChatGPT-Account-Id` header. That header is OpenAI's counterpart to the
-  `account_uuid` TeamClaude patches into an Anthropic request body — so the
+  `account_uuid` Team Mokea patches into an Anthropic request body — so the
   Codex path performs no body rewrite at all.
 - Tokens refresh against `auth.openai.com` using the Codex CLI's own client id.
 - The proxy waits **5 minutes** for the response head instead of the fleet's 2,
@@ -320,14 +320,14 @@ and one TUI.
   reasoning — on a large-context turn that is minutes of silence on a perfectly
   healthy socket. The wait covers the head only: once it arrives the deadline is
   dropped and the body streams for as long as it needs.
-  `TEAMCLAUDE_UPSTREAM_HEADERS_TIMEOUT_MS` overrides both figures.
+  `TEAM_MOKEA_UPSTREAM_HEADERS_TIMEOUT_MS` overrides both figures.
 - The request body is forwarded untouched. This is a passthrough, not a
-  translation layer: TeamClaude never converts between the Anthropic and OpenAI
+  translation layer: Team Mokea never converts between the Anthropic and OpenAI
   protocols.
 
 ### Quota
 
-Codex reports its limits on every response, and TeamClaude normalises them into
+Codex reports its limits on every response, and Team Mokea normalises them into
 the same fields the Anthropic path fills — so the switch threshold, reset
 countdowns and the TUI's quota bars work for Codex accounts too, and rotation
 happens *before* upstream refuses rather than after a 429.
@@ -351,7 +351,7 @@ would otherwise sit out the rest of its week holding one.
 
 The count an account holds comes free with the quota probe — it rides on the
 same `/wham/usage` payload the quota reading does — and shows up as `RC1` on the
-TUI row, a `Reset` line in `teamclaude status`, and a badge on the dashboard
+TUI row, a `Reset` line in `team-mokea status`, and a badge on the dashboard
 card. It survives a restart, which matters because the probe is off by default.
 
 Only the probe refreshes the count, so a reading can outlive the credit it
@@ -425,16 +425,16 @@ zero-spend `/api/oauth/usage` call it already makes. It asks with
 includes the reset block for a recent Claude Code client. The count shows up on
 the same surfaces as the
 [Codex reset credits](#free-rate-limit-reset-credits): `RC1` on the TUI row, a
-`Reset` line in `teamclaude status` with when the reset lapses
+`Reset` line in `team-mokea status` with when the reset lapses
 (`expires 18d 23h`), and a badge with the date on the dashboard card. A reset
 past its expiry date is dropped from every surface, as is a reading more than
 7 days old.
 
 The probe is off by default, so the count is only as fresh as the last probe:
-`p` in the TUI, or `curl -X POST localhost:3456/teamclaude/probe`, refreshes
+`p` in the TUI, or `curl -X POST localhost:3456/team-mokea/probe`, refreshes
 it once.
 
-TeamClaude only **reports** a banked reset; it never spends one.
+Team Mokea only **reports** a banked reset; it never spends one.
 `autoRedeemResets` applies to Codex accounts only. Spend a Claude reset
 yourself, on the claude.ai usage page or with `/limit-reset` in Claude Code.
 
@@ -460,7 +460,7 @@ Any Anthropic-compatible API can be added as an account alongside your Claude ac
 - **`modelMap`** — when a Claude model name arrives in the request body, it is rewritten to the mapped name before forwarding.
 - **`messageThreads`** — set to `true` when the backend keeps Anthropic message-thread state (a relay that reaches Anthropic does). Off by default for a third-party backend — see below.
 
-Where the provider publishes one, its own balance or quota is shown in `teamclaude status` — see [third-party backend quota](quota.md#third-party-backend-quota).
+Where the provider publishes one, its own balance or quota is shown in `team-mokea status` — see [third-party backend quota](quota.md#third-party-backend-quota).
 
 A [NanoGPT](https://docs.nano-gpt.com/integrations/claude-code) account is the same shape. Its Anthropic-compatible endpoint is `/api/v1/messages`, so the `upstream` is `https://api.nano-gpt.com/api` — Claude Code's SDK appends `/v1/messages` itself, and the `/api/v1` base in NanoGPT's integration page would double it. Claude model names are accepted as they are, so no `modelMap` is needed for Claude; a non-Claude model is named `provider/model`, for example `z-ai/glm-5.3`:
 
@@ -480,7 +480,7 @@ A [NanoGPT](https://docs.nano-gpt.com/integrations/claude-code) account is the s
 { "name": "nano", "match": ["z-ai/*", "moonshotai/*", "deepseek/*"], "accounts": ["nano-gpt"] }
 ```
 
-Which models a NanoGPT subscription covers, and which are billed from the balance on top, is set by NanoGPT and not published per model; its `Plan` line in `teamclaude status` (see [third-party backend quota](quota.md#third-party-backend-quota)) shows when a request has started to bill the balance.
+Which models a NanoGPT subscription covers, and which are billed from the balance on top, is set by NanoGPT and not published per model; its `Plan` line in `team-mokea status` (see [third-party backend quota](quota.md#third-party-backend-quota)) shows when a request has started to bill the balance.
 
 A [Z.ai GLM Coding Plan](https://docs.z.ai/devpack/tool/claude) is the same shape. Its endpoint serves only its own model names, so map the Claude names your sessions send onto them, and it takes the key as a bearer exactly as Claude Code's `ANTHROPIC_AUTH_TOKEN` would send it:
 
@@ -500,7 +500,7 @@ A [Z.ai GLM Coding Plan](https://docs.z.ai/devpack/tool/claude) is the same shap
 }
 ```
 
-Its 5-hour and weekly windows show up in `teamclaude status` (see [third-party backend quota](quota.md#third-party-backend-quota)). `priority: 100` makes it a fallback once the Claude accounts are spent — and then the `modelMap` above rewrites the Claude names onto GLM. A [route](routing.md#model-routes) matching `glm-*` sends a session to it on purpose, but a route only restricts who serves the models it matches; it does not keep the account out of ordinary rotation for the rest, so keep the priority high either way.
+Its 5-hour and weekly windows show up in `team-mokea status` (see [third-party backend quota](quota.md#third-party-backend-quota)). `priority: 100` makes it a fallback once the Claude accounts are spent — and then the `modelMap` above rewrites the Claude names onto GLM. A [route](routing.md#model-routes) matching `glm-*` sends a session to it on purpose, but a route only restricts who serves the models it matches; it does not keep the account out of ordinary rotation for the rest, so keep the priority high either way.
 
 Reserve the backend for sessions that explicitly ask for its models with a [route](routing.md#model-routes):
 

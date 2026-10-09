@@ -166,7 +166,7 @@ test('an OAuth account is still taken out of rotation for good', (t) => {
     assert.equal(am.accounts[0].status, 'error');
     assert.equal(am.accounts[0].credentialRejectedUntil, null);
     assert.equal(am.accounts[0].credentialRejections, 0);
-    assert.ok(lines.some(l => /taken out of rotation/.test(l) && /teamclaude login/.test(l)), lines.join('\n'));
+    assert.ok(lines.some(l => /taken out of rotation/.test(l) && /team-mokea login/.test(l)), lines.join('\n'));
 
     t.mock.timers.tick(24 * 60 * MINUTE);
     assert.equal(am.unavailableReason(am.accounts[0]), 'error', 'no cooldown brings it back');

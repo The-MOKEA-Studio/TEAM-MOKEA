@@ -290,9 +290,9 @@ test('a console that throws does not defeat the recovery', async () => {
   // Recovering quietly is not the same as recovering. Both reports on this path
   // have to reach somewhere a person can read them, or a render bug is invisible
   // for as long as the TUI is up.
-  assert.match(reported, /\[TeamClaude\] Unhandled error:/,
+  assert.match(reported, /\[Team Mokea\] Unhandled error:/,
     'the failure that started the recovery was never reported anywhere');
-  assert.match(reported, /\[TeamClaude\] activity hook failed while closing a request:/,
+  assert.match(reported, /\[Team Mokea\] activity hook failed while closing a request:/,
     'the hook failure inside the recovery was never reported anywhere');
 });
 
@@ -300,13 +300,13 @@ test('a console that throws does not defeat the recovery', async () => {
 // statement of the catch.
 test('a console that throws does not defeat the control-plane recovery', async () => {
   const { out, reported } = await recoverInChild({
-    path: '/teamclaude/status', method: 'GET',
+    path: '/team-mokea/status', method: 'GET',
     hooks: `{ getStatusExtra: () => { throw new Error('TUI render failed'); } }`,
   });
   assert.ok(!out.some(l => l.startsWith('ESCAPED:')),
     `a throwing console escaped the control-plane handler, where crash-log turns it into exit(1): ${out.join(', ')}`);
   assert.ok(out.includes('answered=502'), `a throwing console cost the status request its answer: ${out.join(', ')}`);
-  assert.match(reported, /\[TeamClaude\] Unhandled error:/,
+  assert.match(reported, /\[Team Mokea\] Unhandled error:/,
     'the failure that started the recovery was never reported anywhere');
 });
 

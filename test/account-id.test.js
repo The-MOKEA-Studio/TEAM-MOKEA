@@ -101,7 +101,7 @@ test('a delegated entry keeps its id through the credential import', async () =>
 
 test('a config written before the field existed is given ids on load', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'tc-acct-id-'));
-  const configPath = join(dir, 'teamclaude.json');
+  const configPath = join(dir, 'team-mokea.json');
   await writeFile(configPath, JSON.stringify({
     accounts: [
       { name: 'a', type: 'apikey', apiKey: 'k-a' },
@@ -109,8 +109,8 @@ test('a config written before the field existed is given ids on load', async () 
     ],
   }));
 
-  const prev = process.env.TEAMCLAUDE_CONFIG;
-  process.env.TEAMCLAUDE_CONFIG = configPath;
+  const prev = process.env.TEAM_MOKEA_CONFIG;
+  process.env.TEAM_MOKEA_CONFIG = configPath;
   try {
     const { loadConfig, saveConfig } = await import('../src/config.js');
     const config = await loadConfig();
@@ -122,7 +122,7 @@ test('a config written before the field existed is given ids on load', async () 
     const written = JSON.parse(await readFile(configPath, 'utf-8'));
     assert.deepEqual(written.accounts.map(a => a.id), config.accounts.map(a => a.id));
   } finally {
-    if (prev === undefined) delete process.env.TEAMCLAUDE_CONFIG;
-    else process.env.TEAMCLAUDE_CONFIG = prev;
+    if (prev === undefined) delete process.env.TEAM_MOKEA_CONFIG;
+    else process.env.TEAM_MOKEA_CONFIG = prev;
   }
 });

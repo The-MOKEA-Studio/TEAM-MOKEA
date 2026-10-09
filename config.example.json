@@ -7,8 +7,8 @@
       { "name": "build-box", "key": "tc-build-box-own-secret" }
     ],
     "usageDimensions": [
-      { "name": "project", "header": "x-teamclaude-project" },
-      { "name": "ref", "header": "x-teamclaude-ref" }
+      { "name": "project", "header": "x-team-mokea-project" },
+      { "name": "ref", "header": "x-team-mokea-ref" }
     ],
     "sessionDetail": false,
     "mcp": "off"

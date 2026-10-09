@@ -8,7 +8,7 @@ function listen(server) {
   return new Promise(resolve => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
 }
 
-test('GET /teamclaude/quota returns the fleet quota without reaching upstream', async () => {
+test('GET /team-mokea/quota returns the fleet quota without reaching upstream', async () => {
   let upstreamRequests = 0;
   const upstream = http.createServer((_req, res) => {
     upstreamRequests++;
@@ -42,7 +42,7 @@ test('GET /teamclaude/quota returns the fleet quota without reaching upstream', 
   const port = await listen(proxy);
 
   try {
-    const res = await fetch(`http://127.0.0.1:${port}/teamclaude/quota`);
+    const res = await fetch(`http://127.0.0.1:${port}/team-mokea/quota`);
     const body = await res.json();
     assert.equal(res.status, 200);
     assert.ok(Array.isArray(body.accounts));
@@ -68,7 +68,7 @@ test('GET /teamclaude/quota returns the fleet quota without reaching upstream', 
   }
 });
 
-test('GET /teamclaude/quota uses the standard proxy error when its live metadata cannot be built', async () => {
+test('GET /team-mokea/quota uses the standard proxy error when its live metadata cannot be built', async () => {
   const am = new AccountManager([{
     name: 'team', type: 'oauth', accessToken: 'token',
   }], 0.98);
@@ -81,7 +81,7 @@ test('GET /teamclaude/quota uses the standard proxy error when its live metadata
   const port = await listen(proxy);
 
   try {
-    const res = await fetch(`http://127.0.0.1:${port}/teamclaude/quota`, {
+    const res = await fetch(`http://127.0.0.1:${port}/team-mokea/quota`, {
       signal: AbortSignal.timeout(1000),
     });
     const body = await res.json();

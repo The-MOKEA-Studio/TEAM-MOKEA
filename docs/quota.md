@@ -1,35 +1,35 @@
 # Quota
 
-How TeamClaude learns each account's quota, the two optional background jobs, and what happens when everything is spent.
+How Team Mokea learns each account's quota, the two optional background jobs, and what happens when everything is spent.
 
 ## How quota is observed
 
-TeamClaude is **passive** by default: it reads `anthropic-ratelimit-unified-*` headers off the responses that flow through it. An account that hasn't served a request yet shows unknown quota until rotation first reaches it.
+Team Mokea is **passive** by default: it reads `anthropic-ratelimit-unified-*` headers off the responses that flow through it. An account that hasn't served a request yet shows unknown quota until rotation first reaches it.
 
-Observed quota is persisted to `teamclaude.state.json` next to the config, so rotation state survives a restart. Stale windows are discarded automatically, and the file is safe to delete — quota is simply re-learned from traffic.
+Observed quota is persisted to `team-mokea.state.json` next to the config, so rotation state survives a restart. Stale windows are discarded automatically, and the file is safe to delete — quota is simply re-learned from traffic.
 
 ## Fleet quota endpoint
 
-`GET /teamclaude/quota` returns the quota data intended for lightweight consumers such as a Claude Code status line. It includes every account's observed limits plus tier-weighted fleet aggregates for the shared 5-hour window, shared weekly window, Sonnet weekly window, and Fable weekly window. Sonnet and Fable fall back to the shared weekly bucket on accounts where Anthropic does not report a dedicated bucket. Windows reported by a third-party backend (see below) fill the `fiveHour`, `weeklyShared` and `monthly` buckets with a `backend*` source on accounts that have no Anthropic readings of their own; `monthly` exists only for such backends. Backend windows join only the per-account buckets: they are excluded from the aggregates by source, whatever tier the account claims. Each backend bucket also carries `observedAt`, the millisecond timestamp of the probe that read it: a probe that fails keeps the last good reading rather than clearing it, and a window with no reset never expires, so the age is what tells a fresh value from an old one. Its top-level `warmup` object reports whether keep-warm is off, interval-based, scheduled for a daily reset target, or running on an anchored five-hour cadence. Scheduled modes include the configured timezone, missed-run policy, and next warm-up/reset timestamps; rolling mode also includes `anchorResetAt`, `cadenceSeconds`, `nearResetToleranceSeconds`, and `postResetBufferSeconds`.
+`GET /team-mokea/quota` returns the quota data intended for lightweight consumers such as a Claude Code status line. It includes every account's observed limits plus tier-weighted fleet aggregates for the shared 5-hour window, shared weekly window, Sonnet weekly window, and Fable weekly window. Sonnet and Fable fall back to the shared weekly bucket on accounts where Anthropic does not report a dedicated bucket. Windows reported by a third-party backend (see below) fill the `fiveHour`, `weeklyShared` and `monthly` buckets with a `backend*` source on accounts that have no Anthropic readings of their own; `monthly` exists only for such backends. Backend windows join only the per-account buckets: they are excluded from the aggregates by source, whatever tier the account claims. Each backend bucket also carries `observedAt`, the millisecond timestamp of the probe that read it: a probe that fails keeps the last good reading rather than clearing it, and a window with no reset never expires, so the age is what tells a fresh value from an old one. Its top-level `warmup` object reports whether keep-warm is off, interval-based, scheduled for a daily reset target, or running on an anchored five-hour cadence. Scheduled modes include the configured timezone, missed-run policy, and next warm-up/reset timestamps; rolling mode also includes `anchorResetAt`, `cadenceSeconds`, `nearResetToleranceSeconds`, and `postResetBufferSeconds`.
 
-Subscription capacity is weighted relative to Claude Pro: Pro and Team Standard are `1`, Max 5x and Team tier 1 are `5`, and Max 20x and Team tier 2 are `20`. TeamClaude reads the organization and seat tier from the OAuth profile. An unrecognized tier remains visible under `accounts` and `unknownTiers` but is excluded from the aggregate instead of being assigned a guessed weight. API-key token and request limits remain per-account because their units cannot be combined with subscription utilization.
+Subscription capacity is weighted relative to Claude Pro: Pro and Team Standard are `1`, Max 5x and Team tier 1 are `5`, and Max 20x and Team tier 2 are `20`. Team Mokea reads the organization and seat tier from the OAuth profile. An unrecognized tier remains visible under `accounts` and `unknownTiers` but is excluded from the aggregate instead of being assigned a guessed weight. API-key token and request limits remain per-account because their units cannot be combined with subscription utilization.
 
 Remote callers authenticate exactly like the other control endpoints:
 
 ```bash
-curl -H "x-api-key: $TEAMCLAUDE_API_KEY" https://proxy.example.com/teamclaude/quota
+curl -H "x-api-key: $TEAM_MOKEA_API_KEY" https://proxy.example.com/team-mokea/quota
 ```
 
-The optional quota probe also fills missing tier metadata on its first successful refresh. Tier metadata is persisted with observed quota in `teamclaude.state.json`, so it survives subsequent restarts.
+The optional quota probe also fills missing tier metadata on its first successful refresh. Tier metadata is persisted with observed quota in `team-mokea.state.json`, so it survives subsequent restarts.
 
 ## Quota probe
 
 If you'd rather keep idle accounts' quota fresh, enable the background probe:
 
 ```bash
-teamclaude probe 300    # refresh every 300s
-teamclaude probe off    # back to passive (default)
-teamclaude probe        # show current setting
+team-mokea probe 300    # refresh every 300s
+team-mokea probe off    # back to passive (default)
+team-mokea probe        # show current setting
 ```
 
 The **Quota probe** row on the TUI settings screen (`g`) does the same thing, and `p` on the main screen is a one-shot refresh of every account.
@@ -44,7 +44,7 @@ It is likewise the only source for Claude's [banked usage-limit resets](accounts
 
 Those `7d_oi` headers ride on **Fable responses only** — no other model's response carries them. That makes a spent Fable (or Sonnet) reading self-sealing: once it reads at or above the switch threshold, rotation stops sending that family to the account, which is also the only thing that could have refreshed the reading ([#167](https://github.com/KarpelesLab/teamclaude/issues/167)).
 
-So a spent family reading is trusted for 30 minutes. After that it is dropped, the family falls back to the shared weekly bucket, and the next request of that family re-establishes the truth from real headers — a rejection re-arms the gate with a fresh reading for another 30 minutes, so a genuinely spent bucket costs at most one rejected request per account per window. Set `TEAMCLAUDE_FAMILY_STALE_MS` to tune the window. Readings with headroom are never dropped: they gate nothing.
+So a spent family reading is trusted for 30 minutes. After that it is dropped, the family falls back to the shared weekly bucket, and the next request of that family re-establishes the truth from real headers — a rejection re-arms the gate with a fresh reading for another 30 minutes, so a genuinely spent bucket costs at most one rejected request per account per window. Set `TEAM_MOKEA_FAMILY_STALE_MS` to tune the window. Readings with headroom are never dropped: they gate nothing.
 
 Running the probe sidesteps this entirely — it refreshes the family buckets from the usage endpoint without spending quota, so a reset is picked up within one probe interval instead of within the staleness window.
 
@@ -52,7 +52,7 @@ A probe revalidates a family bucket in full, which includes concluding that ther
 
 ## Spend from outside the proxy
 
-An account in the pool can also be used somewhere else — a local login, a credentials file on another machine — and that spend lands on the same weekly limit while none of the proxy's counters see it. `quota.outsideSpend` in `/teamclaude/status` reports how much of each weekly window was spent elsewhere, as a share of that week:
+An account in the pool can also be used somewhere else — a local login, a credentials file on another machine — and that spend lands on the same weekly limit while none of the proxy's counters see it. `quota.outsideSpend` in `/team-mokea/status` reports how much of each weekly window was spent elsewhere, as a share of that week:
 
 ```json
 "outsideSpend": {
@@ -61,7 +61,7 @@ An account in the pool can also be used somewhere else — a local login, a cred
 }
 ```
 
-`teamclaude status` and the dashboard show the same thing in one line: `4.0% of the week went elsewhere · Fable week: not measurable`.
+`team-mokea status` and the dashboard show the same thing in one line: `4.0% of the week went elsewhere · Fable week: not measurable`.
 
 How it is attributed. Between two fresh readings of one window on one account:
 
@@ -85,25 +85,25 @@ Each window is in one of three states, and only the first carries a number:
 | `not_measurable` | there were fresh readings, but the proxy was serving the account across every interval between them |
 | `not_observed` | fewer than two fresh readings in this window — typically the probe is off and the account was not routed to |
 
-`since` is when tracking of the current window started (the first fresh reading of it). Only weekly windows are tracked — the all-models weekly and any family bucket the account reports. The 5h window rolls over too often for a floor to say anything. The sums persist in `teamclaude.state.json`; the interval spanning a restart is never attributed to the outside, since the proxy cannot know what it served while it was down.
+`since` is when tracking of the current window started (the first fresh reading of it). Only weekly windows are tracked — the all-models weekly and any family bucket the account reports. The 5h window rolls over too often for a floor to say anything. The sums persist in `team-mokea.state.json`; the interval spanning a restart is never attributed to the outside, since the proxy cannot know what it served while it was down.
 
 ## Keep-warm
 
 The rolling **5-hour session window** only starts once an account sends a real message. So when your active account runs out and rotation moves to a cold account, that account's 5h window starts *then* — right when you need its full headroom. Keep-warm ([#76](https://github.com/KarpelesLab/teamclaude/issues/76)) starts the timer on idle accounts ahead of time, so the next account is already partway (or fully) through a fresh window when it's needed.
 
 ```bash
-teamclaude warmup 600                                      # warm idle accounts every 600s
-teamclaude warmup reset 15:30 --timezone Europe/Moscow     # target a daily 15:30 reset
-teamclaude warmup rolling 15:30 --timezone Europe/Moscow   # anchor resets at 15:30, then every 5h
-teamclaude warmup off                                      # disable either mode
-teamclaude warmup                                          # show current setting
+team-mokea warmup 600                                      # warm idle accounts every 600s
+team-mokea warmup reset 15:30 --timezone Europe/Moscow     # target a daily 15:30 reset
+team-mokea warmup rolling 15:30 --timezone Europe/Moscow   # anchor resets at 15:30, then every 5h
+team-mokea warmup off                                      # disable either mode
+team-mokea warmup                                          # show current setting
 ```
 
-> ⚠️ **This spends a little quota — unlike the passive quota probe.** The 5h timer can't be started by a read-only call, so keep-warm sends a real (minimal) message: for each eligible idle account it spawns a one-shot `claude -p --bare --model haiku --output-format text "hi"` pointed at this proxy, pinned to that account. It only warms accounts whose 5h window is **not already running**, skips disabled/throttled/errored, third-party-backend and Codex accounts, and uses the cheapest model — but it does consume a few tokens and a slice of the 5h/weekly buckets per account per window. Requires the `claude` CLI on `PATH`. Minimum interval 60s; changes apply live. Status shows under `warm` in `teamclaude status --json`.
+> ⚠️ **This spends a little quota — unlike the passive quota probe.** The 5h timer can't be started by a read-only call, so keep-warm sends a real (minimal) message: for each eligible idle account it spawns a one-shot `claude -p --bare --model haiku --output-format text "hi"` pointed at this proxy, pinned to that account. It only warms accounts whose 5h window is **not already running**, skips disabled/throttled/errored, third-party-backend and Codex accounts, and uses the cheapest model — but it does consume a few tokens and a slice of the 5h/weekly buckets per account per window. Requires the `claude` CLI on `PATH`. Minimum interval 60s; changes apply live. Status shows under `warm` in `team-mokea status --json`.
 
-Reset mode stores the target wall time and IANA timezone in the config, then subtracts Anthropic's fixed five-hour window to find each warm-up. It recalculates the next calendar occurrence after startup, config reload, and every run, so daylight-saving changes do not drift the schedule. It follows cron semantics: if TeamClaude was stopped at the scheduled time, that run is skipped and the server waits for the next future occurrence. The CLI confirmation prints the resolved local time, UTC time, timezone offset, and next occurrence.
+Reset mode stores the target wall time and IANA timezone in the config, then subtracts Anthropic's fixed five-hour window to find each warm-up. It recalculates the next calendar occurrence after startup, config reload, and every run, so daylight-saving changes do not drift the schedule. It follows cron semantics: if Team Mokea was stopped at the scheduled time, that run is skipped and the server waits for the next future occurrence. The CLI confirmation prints the resolved local time, UTC time, timezone offset, and next occurrence.
 
-Rolling mode uses the requested local time to save the next reset whose warm-up time has not passed, then schedules warm-ups on the same absolute five-hour cadence indefinitely. The saved anchor keeps the phase stable across service restarts and config reloads. Missed slots are skipped with no catch-up request; TeamClaude waits for the next point on the original cadence. If Anthropic reports that an account's current window resets within two minutes of a rolling slot, TeamClaude waits until ten seconds after that reset and retries only that account. It rechecks the account first, so normal usage that already started a new window suppresses the delayed warm-up. The retry is also skipped if its timer or token refresh runs beyond the following minute. This short per-account delay handles clock and reset-reporting imprecision without moving the global cadence or replaying a missed slot after restart. Because 24 hours is not divisible by 5, only the anchor reset occurs at the requested wall time: later reset times move around the local clock, and daylight-saving changes can shift their displayed local time as well. The CLI prints each rolling instant with its own UTC offset and ISO timestamp so repeated DST wall times remain unambiguous. This is best effort: an account with a live five-hour window outside the tolerance or an ineligible state is skipped at that slot.
+Rolling mode uses the requested local time to save the next reset whose warm-up time has not passed, then schedules warm-ups on the same absolute five-hour cadence indefinitely. The saved anchor keeps the phase stable across service restarts and config reloads. Missed slots are skipped with no catch-up request; Team Mokea waits for the next point on the original cadence. If Anthropic reports that an account's current window resets within two minutes of a rolling slot, Team Mokea waits until ten seconds after that reset and retries only that account. It rechecks the account first, so normal usage that already started a new window suppresses the delayed warm-up. The retry is also skipped if its timer or token refresh runs beyond the following minute. This short per-account delay handles clock and reset-reporting imprecision without moving the global cadence or replaying a missed slot after restart. Because 24 hours is not divisible by 5, only the anchor reset occurs at the requested wall time: later reset times move around the local clock, and daylight-saving changes can shift their displayed local time as well. The CLI prints each rolling instant with its own UTC offset and ISO timestamp so repeated DST wall times remain unambiguous. This is best effort: an account with a live five-hour window outside the tolerance or an ineligible state is skipped at that slot.
 
 Keep-warm has nothing to do with the prompt cache — see [Prompt caching across rotation](routing.md#prompt-caching-across-rotation).
 
@@ -126,10 +126,10 @@ Keys are the quota field names — `unified5h`, `unified7d`, `unified7dFable`, `
 Either form can be set without a terminal attached:
 
 ```bash
-teamclaude threshold                  # show the effective table
-teamclaude threshold 90               # one number for every bucket
-teamclaude threshold unified7d=90     # add or change one bucket
-teamclaude threshold unified7d=default  # drop it again
+team-mokea threshold                  # show the effective table
+team-mokea threshold 90               # one number for every bucket
+team-mokea threshold unified7d=90     # add or change one bucket
+team-mokea threshold unified7d=default  # drop it again
 ```
 
 A running server picks the change up on the reload the command sends it. This is the only way to edit a per-bucket table in place: the TUI shows it read-only, and the single-number form there would flatten it.
@@ -146,7 +146,7 @@ The fleet-wide setting above is one number (or one table) for every account, whi
 { "name": "small-plan@example.com", "switchThreshold": 0.9 }
 ```
 
-Resolution is per bucket, not all-or-nothing: for a given bucket, TeamClaude checks the account table's entry for that bucket, then the account's own `default` (or a bare per-account number), and only then falls back to the fleet's own `switchThreshold` for that bucket. So a table that names only one bucket overrides just that one and inherits every other bucket from the fleet setting:
+Resolution is per bucket, not all-or-nothing: for a given bucket, Team Mokea checks the account table's entry for that bucket, then the account's own `default` (or a bare per-account number), and only then falls back to the fleet's own `switchThreshold` for that bucket. So a table that names only one bucket overrides just that one and inherits every other bucket from the fleet setting:
 
 ```json
 { "name": "b@example.com", "switchThreshold": { "unified7dFable": 0.8 } }
@@ -154,9 +154,9 @@ Resolution is per bucket, not all-or-nothing: for a given bucket, TeamClaude che
 
 leaves `b`'s `unified5h` and `unified7d` on whatever the fleet has configured, and only rotates Fable off at 80%.
 
-It is still a **preference**, exactly like the fleet setting: the all-exhausted revalidation probe can override it the same way, which is what keeps it a different setting from the hard `accounts[].maxUsage` cap above. The account's own value is what the bars, the `Models` row, and `teamclaude status` redden against for that account — see [Per-account usage caps](#per-account-usage-caps) for how the two ceilings are drawn together when both are set.
+It is still a **preference**, exactly like the fleet setting: the all-exhausted revalidation probe can override it the same way, which is what keeps it a different setting from the hard `accounts[].maxUsage` cap above. The account's own value is what the bars, the `Models` row, and `team-mokea status` redden against for that account — see [Per-account usage caps](#per-account-usage-caps) for how the two ceilings are drawn together when both are set.
 
-An override shows up wherever the account itself does — `teamclaude status`, the TUI (live and attach mode), and the web dashboard — but only where it actually moves something: an account with no `switchThreshold`, or one whose table happens to repeat the fleet's own numbers, draws no extra line. `teamclaude status` shows it as its own row:
+An override shows up wherever the account itself does — `team-mokea status`, the TUI (live and attach mode), and the web dashboard — but only where it actually moves something: an account with no `switchThreshold`, or one whose table happens to repeat the fleet's own numbers, draws no extra line. `team-mokea status` shows it as its own row:
 
 ```
   Weekly   [███████████░░░░░░] 62%
@@ -188,7 +188,7 @@ A bare number caps every bucket. Keys are the same quota field names as `switchT
 
 At the cap, that account receives **nothing**:
 
-- rotation skips it, reporting `capped` (or `advisor-capped`) in `teamclaude status`;
+- rotation skips it, reporting `capped` (or `advisor-capped`) in `team-mokea status`;
 - the all-exhausted revalidation probe skips it, unlike a `switchThreshold` decision;
 - a pinned request (`TC_ACCT`, `/tc-acct/<name>`) gets the exhausted answer rather than spending past the cap. A pin still never leaks to another account.
 
@@ -216,17 +216,17 @@ A usage cap is about quota. On a seat with **extra usage** enabled the interesti
 { "name": "work@example.com", "type": "oauth", "maxSpend": 20 }
 ```
 
-Written in the account's billing currency (`20` is $20.00), and judged against the month-to-date extra-usage figure the usage endpoint reports — the same figure `teamclaude status` prints as `$14.35 of $10,000.00 used this month`. At the cap the account receives nothing, exactly like a usage cap: rotation skips it, the exhausted-fleet probe skips it, a pin gets the exhausted answer. When upstream's figure resets with the month, the next probe lifts the cap by itself.
+Written in the account's billing currency (`20` is $20.00), and judged against the month-to-date extra-usage figure the usage endpoint reports — the same figure `team-mokea status` prints as `$14.35 of $10,000.00 used this month`. At the cap the account receives nothing, exactly like a usage cap: rotation skips it, the exhausted-fleet probe skips it, a pin gets the exhausted answer. When upstream's figure resets with the month, the next probe lifts the cap by itself.
 
-**`maxSpend` requires the quota probe.** The spend figure comes only from probe readings — a response carries no month-to-date amount — so it is refreshed on the probe's schedule (`quotaProbeSeconds`, or `teamclaude probe N`; see [Quota probe](#quota-probe)) and by the TUI's **`p`** refresh, never by the request in flight. The cap therefore binds within one probe interval of the figure being reached, not on the request that crosses it: what one interval can bill is the slack to budget for, and with the probe off the figure only moves when you press **`p`**, so the cap effectively never binds.
+**`maxSpend` requires the quota probe.** The spend figure comes only from probe readings — a response carries no month-to-date amount — so it is refreshed on the probe's schedule (`quotaProbeSeconds`, or `team-mokea probe N`; see [Quota probe](#quota-probe)) and by the TUI's **`p`** refresh, never by the request in flight. The cap therefore binds within one probe interval of the figure being reached, not on the request that crosses it: what one interval can bill is the slack to budget for, and with the probe off the figure only moves when you press **`p`**, so the cap effectively never binds.
 
 - The cap binds at the level set (`>=`). `0` means "not one cent": an account that has billed nothing is still admitted, the first billed cent bars it.
 - Only an account that **can** bill is judged. With extra usage off upstream no request costs money, and barring the account would only waste the quota it still has.
 - It is a total, not a preference — nothing overrides it. Combine it with `"maxUsage": 1.0` to stop before billing can start, and keep `maxSpend` as the backstop: it bounds the month's total to the cap plus whatever one probe interval can bill, not to the cent.
 
-The TUI row shows the amount once anything has been billed, and the cap after it: `$14.35/20`. `teamclaude status` prints the same on the account's `Spend` line, and names the reason `extra-usage spend cap reached (maxSpend)` while the cap holds.
+The TUI row shows the amount once anything has been billed, and the cap after it: `$14.35/20`. `team-mokea status` prints the same on the account's `Spend` line, and names the reason `extra-usage spend cap reached (maxSpend)` while the cap holds.
 
-No CLI editor, matching `maxUsage`: hand-edit the config and let a running server pick it up on reload (**`R`** in the TUI, or `POST /teamclaude/reload`).
+No CLI editor, matching `maxUsage`: hand-edit the config and let a running server pick it up on reload (**`R`** in the TUI, or `POST /team-mokea/reload`).
 
 ## Extra-usage fallback
 
@@ -252,13 +252,13 @@ By default, once every account is past its switch threshold the proxy answers 42
 
 Utilization goes past 100% in overage, so `maxUsage` above 1.0 is a spend limit: `"maxUsage": 1.5` lets an account run to 150% of its plan and then stop, like any other cap. To bound the bill in money instead, set `maxSpend` — see [Per-account spend caps](#per-account-spend-caps) above; the fallback never admits an account at its spend cap.
 
-The switch onto the fallback and back off it is logged once each, per model scope (a Fable-only episode is not ended by Opus traffic that still has headroom), and a failover hop onto it is logged once per episode too — the free-quota and the paid step each get their own line. While an account is **billing** — at 100% of a governing bucket, or with its month's spend seen rising — `teamclaude status` marks it:
+The switch onto the fallback and back off it is logged once each, per model scope (a Fable-only episode is not ended by Opus traffic that still has headroom), and a failover hop onto it is logged once per episode too — the free-quota and the paid step each get their own line. While an account is **billing** — at 100% of a governing bucket, or with its month's spend seen rising — `team-mokea status` marks it:
 
 ```
   Blocked  local switch threshold reached — serving on extra usage (paid overage), billing
 ```
 
-and the status payload carries `allowExtraUsage` and `onExtraUsage` per account; `onExtraUsage` is false while the fallback is only serving free quota past a threshold. The opt-in itself is visible before it is ever used: `extra usage allowed` in the account header of `teamclaude status`, an `xu` tag (yellow) at the end of the TUI row that turns into a red `xu!` while billing, and an `extra usage allowed` / `on extra usage — billing` badge on the web dashboard. With the quota probe on, the `Spend` row shows what has been billed this month.
+and the status payload carries `allowExtraUsage` and `onExtraUsage` per account; `onExtraUsage` is false while the fallback is only serving free quota past a threshold. The opt-in itself is visible before it is ever used: `extra usage allowed` in the account header of `team-mokea status`, an `xu` tag (yellow) at the end of the TUI row that turns into a red `xu!` while billing, and an `extra usage allowed` / `on extra usage — billing` badge on the web dashboard. With the quota probe on, the `Spend` row shows what has been billed this month.
 
 Edits apply live on config reload — turning it off stops the spending immediately.
 
@@ -274,7 +274,7 @@ A [third-party backend account](accounts.md#third-party-backend-accounts) has no
 
 The reading is normalized to `{ label, text, utilization }`, with a `windows` map when the provider reports distinct windows. A provider that reports a 0-1 fraction gets a bar like any other bucket; one that reports money or credits shows its text. A provider that publishes nothing keeps reading `unknown` — nothing is invented.
 
-With `synthesizeQuotaHeaders: true` the probed 5-hour and weekly windows are also stated to the client as `anthropic-ratelimit-unified-*` headers, so Claude Code shows them in its own `rate_limits` like an Anthropic account's. A monthly window has no such header and is only on `GET /teamclaude/quota`. See [configuration](configuration.md).
+With `synthesizeQuotaHeaders: true` the probed 5-hour and weekly windows are also stated to the client as `anthropic-ratelimit-unified-*` headers, so Claude Code shows them in its own `rate_limits` like an Anthropic account's. A monthly window has no such header and is only on `GET /team-mokea/quota`. See [configuration](configuration.md).
 
 Provider support lives entirely in `src/backend-quota.js`, matched by the host of the account's `upstream`. Adding one is a single entry there (a path and a parse function, plus a header shape when the provider's monitor wants something other than a bearer, plus an optional balance hook); the prober, the quota field and the renderer never name a provider. Supported today:
 
@@ -299,14 +299,14 @@ Provider support lives entirely in `src/backend-quota.js`, matched by the host o
 
 ## Hold on exhaustion
 
-By default, when all accounts are exhausted TeamClaude returns a `429` immediately, which causes Claude Code to abort the current task. With `holdSeconds` set, the proxy **holds the HTTP connection open** instead and polls silently every ~60 seconds; the instant any account's quota resets, the request is forwarded and Claude Code resumes — the interruption never happens.
+By default, when all accounts are exhausted Team Mokea returns a `429` immediately, which causes Claude Code to abort the current task. With `holdSeconds` set, the proxy **holds the HTTP connection open** instead and polls silently every ~60 seconds; the instant any account's quota resets, the request is forwarded and Claude Code resumes — the interruption never happens.
 
-Set it in the config file (`~/.config/teamclaude.json`):
+Set it in the config file (`~/.config/team-mokea.json`):
 
 ```json
 "holdSeconds": 3600
 ```
 
-`teamclaude run` automatically raises `API_TIMEOUT_MS` on the spawned Claude Code process to `holdSeconds + 60` seconds, so the client-side timeout covers the full hold window. No manual Claude Code configuration is needed.
+`team-mokea run` automatically raises `API_TIMEOUT_MS` on the spawned Claude Code process to `holdSeconds + 60` seconds, so the client-side timeout covers the full hold window. No manual Claude Code configuration is needed.
 
 Useful for overnight or unattended runs: rather than waking up to a stopped task, the session resumes silently once a quota window opens.

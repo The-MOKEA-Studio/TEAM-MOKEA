@@ -6,7 +6,7 @@ import { createProxyServer } from '../src/server.js';
 
 // The shared 5-hour and weekly readings carry the time upstream last stated
 // them: `unified5hSeenAt` and `unified7dSeenAt`. A consumer of
-// /teamclaude/status needs that to tell a reading taken a minute ago from one
+// /team-mokea/status needs that to tell a reading taken a minute ago from one
 // restored off disk after a week idle; the value alone looks the same either
 // way. The stamp moves only with its own window's value, so anything that did
 // not state that window — an empty payload, a failed probe, a reset-only
@@ -197,7 +197,7 @@ test('a real stamp survives a restart, and a missing one is not invented', (t) =
   assert.equal(again.accounts[0].quota.unified7dSeenAt, null, 'a second restart does not start the clock either');
 });
 
-test('/teamclaude/status carries each stamp beside its value, for both providers', async () => {
+test('/team-mokea/status carries each stamp beside its value, for both providers', async () => {
   const upstream = http.createServer((req, res) => {
     const headers = req.url.startsWith('/backend-api/codex')
       ? { 'x-codex-primary-used-percent': '35', 'x-codex-primary-window-minutes': '10080' }
@@ -229,7 +229,7 @@ test('/teamclaude/status carries each stamp beside its value, for both providers
     })).text();
     const after = Date.now();
 
-    const status = await (await fetch(`http://127.0.0.1:${port}/teamclaude/status`)).json();
+    const status = await (await fetch(`http://127.0.0.1:${port}/team-mokea/status`)).json();
     const quota = name => status.accounts.find(a => a.name === name).quota;
     const within = (at, label) => assert.ok(at >= before && at <= after, `${label} ${at} not within [${before}, ${after}]`);
 

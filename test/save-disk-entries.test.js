@@ -6,7 +6,7 @@ import {
 
 // The save rebuilt the on-disk list as configAccounts.map(...), so it was
 // exactly as long as the in-memory one and an account added to config.json by
-// another process since the last reload — `teamclaude login` or `import` while
+// another process since the last reload — `team-mokea login` or `import` while
 // the server runs — was dropped by the next save (#205).
 //
 // The trap: removal is ITSELF a save, so adopting disk-only rows without

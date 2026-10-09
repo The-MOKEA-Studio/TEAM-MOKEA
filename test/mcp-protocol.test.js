@@ -5,7 +5,7 @@ import http from 'node:http';
 import { McpError, handleMcpMessage, serveMcp } from '../src/mcp.js';
 
 const MODERN = '2026-07-28';
-const SERVER_INFO = { name: 'teamclaude', version: '0.0.0-test' };
+const SERVER_INFO = { name: 'team-mokea', version: '0.0.0-test' };
 
 const tools = {
   list: () => [{ name: 'echo', description: 'Echo the arguments', inputSchema: { type: 'object' } }],

@@ -137,7 +137,7 @@ test('status draws whatever the reading says, knowing no provider', () => {
 // ── hostile backend (#310) ───────────────────────────────────
 
 // The reply comes from whatever host `account.upstream` names, and `currency`
-// is printed to the operator's terminal by `teamclaude status`.
+// is printed to the operator's terminal by `team-mokea status`.
 test('a currency carrying terminal controls is stripped and bounded before it can be rendered', async () => {
   const hostile = { balance_infos: [{ currency: 'X\x1b]0;PWNED\x07\x1b[2J\rBALANCE  100% OK', total_balance: '12.34' }] };
   const r = await fetchBackendQuota({ upstream: DS, credential: 'k' }, { fetchImpl: okFetch(hostile) });

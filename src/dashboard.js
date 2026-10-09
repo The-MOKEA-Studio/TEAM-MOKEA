@@ -1,8 +1,8 @@
 // The status dashboard: a single self-contained HTML page served at
-// GET /teamclaude/dashboard, rendering /teamclaude/status for humans.
+// GET /team-mokea/dashboard, rendering /team-mokea/status for humans.
 //
 // The page itself contains NO data — it is a static asset whose script fetches
-// /teamclaude/status (same origin) with the proxy key and re-renders every few
+// /team-mokea/status (same origin) with the proxy key and re-renders every few
 // seconds. That split is what lets the asset be served without the key (a
 // browser address bar cannot send x-api-key) while every byte of actual status
 // stays behind the existing gate. The key is asked for only when the server
@@ -359,12 +359,12 @@ export function uniqSorted(values) {
   return Object.keys(seen).sort();
 }
 
-// The request the switch button sends: POST /teamclaude/switch with the same
+// The request the switch button sends: POST /team-mokea/switch with the same
 // key the status poll uses. Pure, so the test suite can send exactly this
 // through a real proxy and prove the same-origin CSRF gate lets the page in.
 export function switchRequest(name, key) {
   return {
-    url: '/teamclaude/switch',
+    url: '/team-mokea/switch',
     init: {
       method: 'POST',
       headers: { 'x-api-key': key || '', 'content-type': 'application/json' },
@@ -382,7 +382,7 @@ export function switchRequest(name, key) {
  */
 export function thresholdRequest(percent, key) {
   return {
-    url: '/teamclaude/threshold',
+    url: '/team-mokea/threshold',
     init: {
       method: 'POST',
       headers: { 'x-api-key': key || '', 'content-type': 'application/json' },
@@ -441,7 +441,7 @@ export function accountControlRequest(name, spec, key) {
     body.disabled = spec.disabled;
   }
   return {
-    url: isPriority ? '/teamclaude/priority' : '/teamclaude/disable',
+    url: isPriority ? '/team-mokea/priority' : '/team-mokea/disable',
     init: {
       method: 'POST',
       headers: { 'x-api-key': key || '', 'content-type': 'application/json' },
@@ -621,7 +621,7 @@ export function problems(status) {
   // Deliberately no spend line. `usedMinor` is month-to-date overage, so on a
   // fleet that has overage switched on it is non-zero for most of the month —
   // an always-lit banner, which is the thing this is trying not to be. The
-  // account card and `teamclaude status` both carry it, with the amount.
+  // account card and `team-mokea status` both carry it, with the amount.
 
   return out;
 }
@@ -675,7 +675,7 @@ const PAGE = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TeamClaude</title>
+<title>Team Mokea</title>
 <style>
   /* Dark is the default, and stays the default for a viewer whose system says
      nothing. The light palette is applied two ways: by the media query when no
@@ -783,7 +783,7 @@ const PAGE = `<!doctype html>
 <script>
 (function () {
   try {
-    var t = localStorage.getItem('teamclaude-dashboard-theme');
+    var t = localStorage.getItem('team-mokea-dashboard-theme');
     if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
   } catch (e) { /* storage disabled: the media query still decides */ }
 })();
@@ -792,13 +792,13 @@ const PAGE = `<!doctype html>
 <body>
 <main>
   <div id="keybox">
-    <h1>TeamClaude</h1>
+    <h1>Team Mokea</h1>
     <p class="sub">Enter your proxy key to view status.</p>
     <input id="key" type="password" placeholder="tc-..." autocomplete="off">
     <br><button id="go">Connect</button>
   </div>
   <div id="app" style="display:none">
-    <h1>TeamClaude</h1>
+    <h1>Team Mokea</h1>
     <p class="sub" id="summary"></p>
     <div class="actions">
       <button id="reload" type="button">Reload config</button>
@@ -843,8 +843,8 @@ const PAGE = `<!doctype html>
 <script>
 (function () {
   'use strict';
-  var KEY = 'teamclaude-dashboard-key';
-  var THEME_KEY = 'teamclaude-dashboard-theme';
+  var KEY = 'team-mokea-dashboard-key';
+  var THEME_KEY = 'team-mokea-dashboard-theme';
   var POLL_MS = 5000;
   var timer = null;
   var lastStatus = null;
@@ -1430,7 +1430,7 @@ ${SHARED_HELPERS}
   }
 
   function poll() {
-    fetch('/teamclaude/status', { headers: { 'x-api-key': localStorage.getItem(KEY) || '' } })
+    fetch('/team-mokea/status', { headers: { 'x-api-key': localStorage.getItem(KEY) || '' } })
       .then(function (res) {
         // 403 is the loopback exemption refusing a key-less request (a Host
         // that does not name this machine, e.g. behind a local reverse proxy
@@ -1506,8 +1506,8 @@ ${SHARED_HELPERS}
     applyTheme(theme);
   });
 
-  document.getElementById('reload').addEventListener('click', function () { doControl('/teamclaude/reload', 'config reload', this); });
-  document.getElementById('probe').addEventListener('click', function () { doControl('/teamclaude/probe', 'quota probe', this); });
+  document.getElementById('reload').addEventListener('click', function () { doControl('/team-mokea/reload', 'config reload', this); });
+  document.getElementById('probe').addEventListener('click', function () { doControl('/team-mokea/probe', 'quota probe', this); });
   document.getElementById('thrSet').addEventListener('click', function () { doThreshold(this); });
   document.getElementById('thrVal').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') document.getElementById('thrSet').click();

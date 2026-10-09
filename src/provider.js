@@ -1,6 +1,6 @@
 // Backend providers.
 //
-// TeamClaude was built around one upstream (Anthropic), so the things that
+// Team Mokea was built around one upstream (Anthropic), so the things that
 // differ per backend — which host to reach, how to present the account's
 // credential, which request paths belong to it — were inlined at the call
 // sites. Adding a second subscription backend (OpenAI's Codex) makes those the
@@ -237,7 +237,7 @@ export function rewritesBody(account) {
  * nothing more specific has been asked for.
  *
  * `null` means the provider has no opinion and the fleet default applies. The
- * number is a default, not a setting: `TEAMCLAUDE_UPSTREAM_HEADERS_TIMEOUT_MS`
+ * number is a default, not a setting: `TEAM_MOKEA_UPSTREAM_HEADERS_TIMEOUT_MS`
  * and a per-call `headersTimeoutMs` both still win over it (see
  * resolveHeadersTimeout in upstream-fetch.js).
  *

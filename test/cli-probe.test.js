@@ -6,8 +6,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// `teamclaude probe <seconds>` drives the real CLI as a subprocess against a
-// throwaway TEAMCLAUDE_CONFIG. The interval it stores becomes a setInterval
+// `team-mokea probe <seconds>` drives the real CLI as a subprocess against a
+// throwaway TEAM_MOKEA_CONFIG. The interval it stores becomes a setInterval
 // delay, which is a 32-bit signed millisecond count: past ~2,147,483 s it
 // overflows to 1 ms and the probe fires in a tight loop against the usage
 // endpoint. The command has a floor already; this pins the ceiling.
@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const cliPath = fileURLToPath(new URL('../src/index.js', import.meta.url));
 
 async function writeConfig() {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-probe-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-probe-'));
   const path = join(dir, 'config.json');
   await writeFile(path, JSON.stringify({
     proxy: { port: 3, apiKey: 'tc-test' },
@@ -29,7 +29,7 @@ async function writeConfig() {
 
 function runCli(configPath, cliArgs) {
   const child = spawn(process.execPath, [cliPath, ...cliArgs], {
-    env: { ...process.env, TEAMCLAUDE_CONFIG: configPath },
+    env: { ...process.env, TEAM_MOKEA_CONFIG: configPath },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let stdout = '';

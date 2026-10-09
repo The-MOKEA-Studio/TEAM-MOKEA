@@ -32,8 +32,8 @@ test('installKind detects a git checkout by a .git dir', async () => {
 
 test('installKind flags a global npm install and distinguishes a local one', async () => {
   const gRoot = '/usr/lib/node_modules';
-  const global = `${gRoot}/@karpeleslab/teamclaude`;
-  const local = '/home/x/project/node_modules/@karpeleslab/teamclaude';
+  const global = `${gRoot}/@the-mokea-studio/team-mokea`;
+  const local = '/home/x/project/node_modules/@the-mokea-studio/team-mokea';
   assert.equal(await installKind({ root: global, globalRoot: () => gRoot }), 'global');
   assert.equal(await installKind({ root: local, globalRoot: () => gRoot }), 'local');
   // `npm root -g` is asked asynchronously now, so a probe that answers later is
@@ -42,7 +42,7 @@ test('installKind flags a global npm install and distinguishes a local one', asy
 });
 
 test('installKind is unknown outside node_modules (e.g. running from source path)', async () => {
-  assert.equal(await installKind({ root: '/opt/teamclaude-src', globalRoot: () => null }), 'unknown');
+  assert.equal(await installKind({ root: '/opt/team-mokea-src', globalRoot: () => null }), 'unknown');
 });
 
 // ── fetchLatestVersion ───────────────────────────────────────
@@ -207,7 +207,7 @@ test('autoUpdate still installs a well-formed newer version for a global install
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-// `sudo teamclaude server` would otherwise run `npm install -g` as root every
+// `sudo team-mokea server` would otherwise run `npm install -g` as root every
 // day, off a version string fetched from the network.
 test('autoUpdate never runs as root, and says so once', async () => {
   const root = nonGitRoot();

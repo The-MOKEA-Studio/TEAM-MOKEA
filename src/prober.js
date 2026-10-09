@@ -87,10 +87,10 @@ export class Prober {
       if (!wasOn) this.probeAll().catch(() => {});
       this.timer = setInterval(() => this.probeAll().catch(() => {}), intervalMs);
       this.timer.unref?.();
-      this.log(`[TeamClaude] Quota probe enabled (every ${Math.round(intervalMs / 1000)}s)`);
+      this.log(`[Team Mokea] Quota probe enabled (every ${Math.round(intervalMs / 1000)}s)`);
     } else if (wasOn) {
       this.nextRunAt = null;
-      this.log('[TeamClaude] Quota probe disabled');
+      this.log('[Team Mokea] Quota probe disabled');
     }
   }
 

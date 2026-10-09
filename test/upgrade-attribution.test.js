@@ -9,7 +9,7 @@ import { ClientUsageTracker, USAGE_WINDOWS } from '../src/client-usage.js';
 
 // The upgrade gate resolved a client identity and the handler threw it away,
 // so a WebSocket handshake authenticated with a clientKeys entry was relayed
-// but never attributed: not under `clients` in /teamclaude/status, not
+// but never attributed: not under `clients` in /team-mokea/status, not
 // prefixed `[name]` in the activity log (#325). A handshake is not a request
 // and has no tokens, so it is booked as a `connection`, apart from the usage
 // counters, and only once the upstream accepts it.
@@ -108,7 +108,7 @@ test('a key-less loopback handshake stays unattributed, as its requests do', asy
       assert.deepEqual(tracker.export(), {});
       await close();
     });
-    assert.ok(lines.some(l => /^\[TeamClaude\] WebSocket \/v1\/session_ingress\/ws\/abc connected$/.test(l)), `no prefix, got: ${lines}`);
+    assert.ok(lines.some(l => /^\[Team Mokea\] WebSocket \/v1\/session_ingress\/ws\/abc connected$/.test(l)), `no prefix, got: ${lines}`);
   });
 });
 

@@ -8,7 +8,7 @@ import { spawnServer, closedPort } from '../test-helpers/spawn-server.js';
 // order, because a headless server has no TUI to save for it.
 
 async function rpc(port, method, params) {
-  const res = await fetch(`http://127.0.0.1:${port}/teamclaude/mcp`, {
+  const res = await fetch(`http://127.0.0.1:${port}/team-mokea/mcp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
@@ -24,7 +24,7 @@ async function call(port, name, args = {}) {
   return result.structuredContent;
 }
 
-const status = port => fetch(`http://127.0.0.1:${port}/teamclaude/status`).then(r => r.json());
+const status = port => fetch(`http://127.0.0.1:${port}/team-mokea/status`).then(r => r.json());
 
 test('a headless server applies and saves what the write tools change', async () => {
   const deadPort = await closedPort();
@@ -51,7 +51,7 @@ test('a headless server applies and saves what the write tools change', async ()
     const onDisk = await disk();
     onDisk.proxy.mcp = 'full';
     await writeFile(configPath, JSON.stringify(onDisk));
-    const reload = await fetch(`http://127.0.0.1:${proxyPort}/teamclaude/reload`, { method: 'POST' });
+    const reload = await fetch(`http://127.0.0.1:${proxyPort}/team-mokea/reload`, { method: 'POST' });
     assert.equal(reload.status, 200);
     list = await rpc(proxyPort, 'tools/list');
     assert.ok(list.result.tools.length > 3, 'a reload must widen the tool list');
@@ -98,9 +98,9 @@ test('a headless server applies and saves what the write tools change', async ()
     const trimmed = await disk();
     delete trimmed.proxy;
     await writeFile(configPath, JSON.stringify(trimmed));
-    const closing = await fetch(`http://127.0.0.1:${proxyPort}/teamclaude/reload`, { method: 'POST' });
+    const closing = await fetch(`http://127.0.0.1:${proxyPort}/team-mokea/reload`, { method: 'POST' });
     assert.equal(closing.status, 200);
-    const closed = await fetch(`http://127.0.0.1:${proxyPort}/teamclaude/mcp`, {
+    const closed = await fetch(`http://127.0.0.1:${proxyPort}/team-mokea/mcp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping' }),

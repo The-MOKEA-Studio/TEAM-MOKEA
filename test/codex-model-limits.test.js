@@ -24,7 +24,7 @@ const codexAccount = (upstreamPort) => ({
 const claudeAccount = { name: 'claude', type: 'oauth', accessToken: 't', refreshToken: 'r', expiresAt: Date.now() + 3600_000 };
 
 // Serve each Codex request with the headers `headersFor(model)` returns, send
-// the given models through the proxy in order, then read `/teamclaude/status`.
+// the given models through the proxy in order, then read `/team-mokea/status`.
 async function runModels(models, headersFor) {
   const upstream = http.createServer((req, res) => {
     const chunks = [];
@@ -50,7 +50,7 @@ async function runModels(models, headersFor) {
       });
       await res.text();
     }
-    const res = await fetch(`http://127.0.0.1:${proxyPort}/teamclaude/status`, { headers: { 'x-api-key': 'k' } });
+    const res = await fetch(`http://127.0.0.1:${proxyPort}/team-mokea/status`, { headers: { 'x-api-key': 'k' } });
     return await res.json();
   } finally {
     proxy.close();

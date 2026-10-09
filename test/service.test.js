@@ -27,9 +27,9 @@ test('service kind follows the platform', () => {
 
 test('unit files land in the per-user locations', () => {
   assert.equal(launchAgentPath('/Users/x'), `/Users/x/Library/LaunchAgents/${LABEL}.plist`);
-  assert.equal(systemdUnitPath('/home/x', null), '/home/x/.config/systemd/user/teamclaude.service');
-  assert.equal(systemdUnitPath('/home/x', '/cfg'), '/cfg/systemd/user/teamclaude.service');
-  assert.equal(logPath('/Users/x', 'darwin'), '/Users/x/Library/Logs/teamclaude.log');
+  assert.equal(systemdUnitPath('/home/x', null), '/home/x/.config/systemd/user/team-mokea.service');
+  assert.equal(systemdUnitPath('/home/x', '/cfg'), '/cfg/systemd/user/team-mokea.service');
+  assert.equal(logPath('/Users/x', 'darwin'), '/Users/x/Library/Logs/team-mokea.log');
 });
 
 // The regression this guards: process.execPath on a Homebrew node points into
@@ -38,19 +38,19 @@ test('unit files land in the per-user locations', () => {
 test('resolveExec prefers a PATH symlink over the versioned real path', () => {
   const exec = resolveExec({
     execPath: '/opt/homebrew/Cellar/node/26.5.0_1/bin/node',
-    argv1: '/opt/homebrew/bin/teamclaude',
+    argv1: '/opt/homebrew/bin/team-mokea',
     pathEnv: '/usr/bin:/opt/homebrew/bin',
     exists: (p) => p === '/opt/homebrew/bin/node',
     realpath: (p) => (p === '/opt/homebrew/bin/node' ? '/opt/homebrew/Cellar/node/26.5.0_1/bin/node' : p),
   });
   assert.equal(exec.node, '/opt/homebrew/bin/node');
-  assert.equal(exec.entry, '/opt/homebrew/bin/teamclaude');
+  assert.equal(exec.entry, '/opt/homebrew/bin/team-mokea');
 });
 
 test('resolveExec keeps the real path when no PATH entry matches it', () => {
   const exec = resolveExec({
     execPath: '/usr/local/n/versions/node/24/bin/node',
-    argv1: '/usr/local/bin/teamclaude',
+    argv1: '/usr/local/bin/team-mokea',
     pathEnv: '/usr/bin',
     exists: () => false,
     realpath: (p) => p,
@@ -62,7 +62,7 @@ test('resolveExec keeps the real path when no PATH entry matches it', () => {
 test('resolveExec ignores a PATH node that is a different binary', () => {
   const exec = resolveExec({
     execPath: '/opt/homebrew/Cellar/node/26.5.0_1/bin/node',
-    argv1: '/x/teamclaude',
+    argv1: '/x/team-mokea',
     pathEnv: '/usr/bin',
     exists: () => true,
     realpath: (p) => (p === '/usr/bin/node' ? '/usr/bin/node-18' : p),
@@ -73,7 +73,7 @@ test('resolveExec ignores a PATH node that is a different binary', () => {
 // launchd starts with an empty environment — an inherited-looking PATH is not
 // inherited at all, so the unit has to carry one or self-update can't find npm.
 test('the service PATH covers both binaries and the system directories', () => {
-  const p = servicePath({ node: '/opt/homebrew/bin/node', entry: '/opt/homebrew/bin/teamclaude' });
+  const p = servicePath({ node: '/opt/homebrew/bin/node', entry: '/opt/homebrew/bin/team-mokea' });
   assert.match(p, /^\/opt\/homebrew\/bin:/);
   assert.match(p, /\/usr\/bin/);
   assert.equal(p.split(':').filter(d => d === '/opt/homebrew/bin').length, 1); // deduped
@@ -81,10 +81,10 @@ test('the service PATH covers both binaries and the system directories', () => {
 
 test('the LaunchAgent asks for restart-on-exit and headless mode', () => {
   const plist = renderLaunchAgent({
-    node: '/opt/homebrew/bin/node', entry: '/opt/homebrew/bin/teamclaude',
-    log: '/Users/x/Library/Logs/teamclaude.log', path: '/opt/homebrew/bin:/usr/bin',
+    node: '/opt/homebrew/bin/node', entry: '/opt/homebrew/bin/team-mokea',
+    log: '/Users/x/Library/Logs/team-mokea.log', path: '/opt/homebrew/bin:/usr/bin',
   });
-  assert.match(plist, /<key>Label<\/key>\s*<string>com\.karpeleslab\.teamclaude<\/string>/);
+  assert.match(plist, /<key>Label<\/key>\s*<string>studio\.themokea\.team-mokea<\/string>/);
   assert.match(plist, /<string>server<\/string>\s*<string>--headless<\/string>/);
   assert.match(plist, /<key>KeepAlive<\/key>\s*<true\/>/);
   assert.match(plist, /<key>RunAtLoad<\/key>\s*<true\/>/);
@@ -97,31 +97,31 @@ test('the LaunchAgent asks for restart-on-exit and headless mode', () => {
 
 test('paths with XML metacharacters are escaped, not injected', () => {
   const plist = renderLaunchAgent({
-    node: '/n', entry: '/opt/a&b/<teamclaude>', log: '/l', path: '/p',
+    node: '/n', entry: '/opt/a&b/<team-mokea>', log: '/l', path: '/p',
   });
-  assert.match(plist, /&amp;b\/&lt;teamclaude&gt;/);
-  assert.ok(!plist.includes('/opt/a&b/<teamclaude>'));
+  assert.match(plist, /&amp;b\/&lt;team-mokea&gt;/);
+  assert.ok(!plist.includes('/opt/a&b/<team-mokea>'));
 });
 
 test('the systemd unit restarts and starts at login', () => {
   const unit = renderSystemdUnit({
-    node: '/usr/bin/node', entry: '/usr/bin/teamclaude', path: '/usr/bin',
+    node: '/usr/bin/node', entry: '/usr/bin/team-mokea', path: '/usr/bin',
   });
-  assert.match(unit, /ExecStart="\/usr\/bin\/node" "\/usr\/bin\/teamclaude" server --headless/);
+  assert.match(unit, /ExecStart="\/usr\/bin\/node" "\/usr\/bin\/team-mokea" server --headless/);
   assert.match(unit, /Restart=always/);
   assert.match(unit, /WantedBy=default\.target/);
   assert.match(unit, /Environment="PATH=\/usr\/bin"/);
 });
 
 test('an optional config path is carried into both unit formats', () => {
-  const opts = { node: '/n', entry: '/e', log: '/l', path: '/p', configPath: '/cfg/teamclaude.json' };
-  assert.match(renderLaunchAgent(opts), /TEAMCLAUDE_CONFIG<\/key>\s*<string>\/cfg\/teamclaude\.json/);
-  assert.match(renderSystemdUnit(opts), /Environment="TEAMCLAUDE_CONFIG=\/cfg\/teamclaude\.json"/);
+  const opts = { node: '/n', entry: '/e', log: '/l', path: '/p', configPath: '/cfg/team-mokea.json' };
+  assert.match(renderLaunchAgent(opts), /TEAM_MOKEA_CONFIG<\/key>\s*<string>\/cfg\/team-mokea\.json/);
+  assert.match(renderSystemdUnit(opts), /Environment="TEAM_MOKEA_CONFIG=\/cfg\/team-mokea\.json"/);
 });
 
 // Unquoted, a path with a space is two words to systemd — ExecStart would run
 // the wrong program — and a newline anywhere starts a new line of the unit, so
-// a TEAMCLAUDE_CONFIG carrying "\n" injected [Service] directives of its own.
+// a TEAM_MOKEA_CONFIG carrying "\n" injected [Service] directives of its own.
 test('systemd unit values are quoted systemd-style: spaces kept, backslash and quote escaped', () => {
   assert.equal(systemdQuote('/opt/my tools/node'), '"/opt/my tools/node"');
   assert.equal(systemdQuote('/o"p\\t'), '"/o\\"p\\\\t"');
@@ -131,7 +131,7 @@ test('systemd unit values are quoted systemd-style: spaces kept, backslash and q
   });
   assert.match(unit, /^ExecStart="\/opt\/my tools\/node" "\/home\/o\\"brien\/tc" server --headless$/m);
   assert.match(unit, /^Environment="PATH=\/opt\/my tools:\/usr\/bin"$/m);
-  assert.match(unit, /^Environment="TEAMCLAUDE_CONFIG=\/home\/o\\"brien\/cfg.json"$/m);
+  assert.match(unit, /^Environment="TEAM_MOKEA_CONFIG=\/home\/o\\"brien\/cfg.json"$/m);
 });
 
 test('a control character in any unit path is refused, not written', () => {
@@ -152,13 +152,13 @@ test('installing on launchd writes the plist and loads it', async () => {
     const { run, calls } = recorder();
     const res = await installService({
       kind: 'launchd', home, platform: 'darwin', run, log: () => {},
-      exec: { node: '/opt/homebrew/bin/node', entry: '/opt/homebrew/bin/teamclaude' },
+      exec: { node: '/opt/homebrew/bin/node', entry: '/opt/homebrew/bin/team-mokea' },
     });
     assert.equal(res.ok, true);
     const written = await readFile(launchAgentPath(home), 'utf8');
-    assert.match(written, /teamclaude/);
+    assert.match(written, /team-mokea/);
     // bootout before bootstrap: bootstrap fails outright if the label is loaded.
-    assert.match(calls[0], /^launchctl bootout gui\/\d+\/com\.karpeleslab\.teamclaude$/);
+    assert.match(calls[0], /^launchctl bootout gui\/\d+\/studio\.themokea\.team-mokea$/);
     assert.match(calls[1], /^launchctl bootstrap gui\/\d+ /);
   } finally {
     await rm(home, { recursive: true, force: true });
@@ -190,13 +190,13 @@ test('installing on systemd reloads the daemon before enabling', async () => {
     // while asserting against a temp path that was never written.
     const res = await installService({
       kind: 'systemd', home, platform: 'linux', run, log: () => {}, xdgConfig: null,
-      exec: { node: '/usr/bin/node', entry: '/usr/bin/teamclaude' },
+      exec: { node: '/usr/bin/node', entry: '/usr/bin/team-mokea' },
     });
     assert.equal(res.ok, true);
     assert.match(await readFile(systemdUnitPath(home, null), 'utf8'), /ExecStart=/);
     assert.deepEqual(calls, [
       'systemctl --user daemon-reload',
-      'systemctl --user enable --now teamclaude.service',
+      'systemctl --user enable --now team-mokea.service',
     ]);
   } finally {
     await rm(home, { recursive: true, force: true });
@@ -213,10 +213,10 @@ test('the systemd unit follows XDG_CONFIG_HOME when one is set', async () => {
     const { run } = recorder();
     const res = await installService({
       kind: 'systemd', home, platform: 'linux', run, log: () => {}, xdgConfig: xdg,
-      exec: { node: '/usr/bin/node', entry: '/usr/bin/teamclaude' },
+      exec: { node: '/usr/bin/node', entry: '/usr/bin/team-mokea' },
     });
     assert.equal(res.ok, true);
-    assert.equal(res.file, join(xdg, 'systemd', 'user', 'teamclaude.service'));
+    assert.equal(res.file, join(xdg, 'systemd', 'user', 'team-mokea.service'));
     assert.match(await readFile(res.file, 'utf8'), /ExecStart=/);
   } finally {
     await rm(home, { recursive: true, force: true });

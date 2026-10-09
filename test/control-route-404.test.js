@@ -5,7 +5,7 @@ import { AccountManager } from '../src/account-manager.js';
 import { createProxyServer } from '../src/server.js';
 
 // Control routes match an exact method and path, and anything that missed fell
-// through to the forwarder: a typo, or just `GET /teamclaude/reload`, went
+// through to the forwarder: a typo, or just `GET /team-mokea/reload`, went
 // upstream with a fleet account's credential and came back as that server's 404
 // (#420). The prefix is the proxy's own, so an unclaimed path under it is
 // answered here.
@@ -24,7 +24,7 @@ function rawGet(port, path) {
   });
 }
 
-test('an unclaimed /teamclaude/ path is a local 404 and never reaches upstream', async () => {
+test('an unclaimed /team-mokea/ path is a local 404 and never reaches upstream', async () => {
   let upstreamHits = 0;
   const upstream = http.createServer((req, res) => { upstreamHits++; res.writeHead(404); res.end('{}'); });
   const upstreamPort = await listen(upstream);
@@ -32,15 +32,15 @@ test('an unclaimed /teamclaude/ path is a local 404 and never reaches upstream',
   const proxy = createProxyServer(am, { proxy: {}, upstream: `http://127.0.0.1:${upstreamPort}` });
   const port = await listen(proxy);
   try {
-    for (const path of ['/teamclaude/reload', '/teamclaude/statuss', '/teamclaude', '/teamclaude/', '/%74eamclaude/reload', '/teamclaude\\reload']) {
+    for (const path of ['/team-mokea/reload', '/team-mokea/statuss', '/team-mokea', '/team-mokea/', '/%74eamclaude/reload', '/team-mokea\\reload']) {
       const { status, body } = await rawGet(port, path);
       assert.equal(status, 404, path);
-      assert.match(JSON.parse(body).error, /unknown teamclaude control route/, path);
+      assert.match(JSON.parse(body).error, /unknown team-mokea control route/, path);
     }
     assert.equal(upstreamHits, 0, 'nothing was forwarded under a fleet credential');
 
     // The real routes, and ordinary traffic, are untouched.
-    assert.equal((await rawGet(port, '/teamclaude/status')).status, 200);
+    assert.equal((await rawGet(port, '/team-mokea/status')).status, 200);
     await rawGet(port, '/v1/models');
     assert.equal(upstreamHits, 1, 'a path outside the prefix is still forwarded');
   } finally {

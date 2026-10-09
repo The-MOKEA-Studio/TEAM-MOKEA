@@ -82,8 +82,8 @@ test('mitmHosts covers the Anthropic upstream and every used provider host', () 
 
 test('the minted leaf is valid for every intercepted host', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'tc-cert-'));
-  const prev = process.env.TEAMCLAUDE_CONFIG;
-  process.env.TEAMCLAUDE_CONFIG = join(dir, 'teamclaude.json');
+  const prev = process.env.TEAM_MOKEA_CONFIG;
+  process.env.TEAM_MOKEA_CONFIG = join(dir, 'team-mokea.json');
   try {
     const hosts = mitmHosts({ accounts: [claude('a'), codex('c')] });
     const { leafCertPem } = await ensureCerts(hosts);
@@ -93,8 +93,8 @@ test('the minted leaf is valid for every intercepted host', async () => {
       assert.ok(names.includes(`DNS:${h}`), `the leaf does not name ${h}: ${names.join(', ')}`);
     }
   } finally {
-    if (prev === undefined) delete process.env.TEAMCLAUDE_CONFIG;
-    else process.env.TEAMCLAUDE_CONFIG = prev;
+    if (prev === undefined) delete process.env.TEAM_MOKEA_CONFIG;
+    else process.env.TEAM_MOKEA_CONFIG = prev;
     await rm(dir, { recursive: true, force: true });
   }
 });
@@ -102,16 +102,16 @@ test('the minted leaf is valid for every intercepted host', async () => {
 // A single host string must keep working — every existing caller passed one.
 test('ensureCerts still accepts a single host', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'tc-cert-'));
-  const prev = process.env.TEAMCLAUDE_CONFIG;
-  process.env.TEAMCLAUDE_CONFIG = join(dir, 'teamclaude.json');
+  const prev = process.env.TEAM_MOKEA_CONFIG;
+  process.env.TEAM_MOKEA_CONFIG = join(dir, 'team-mokea.json');
   try {
     const { leafCertPem } = await ensureCerts('api.anthropic.com');
     const names = (new X509Certificate(leafCertPem).subjectAltName || '').split(',').map(s => s.trim());
     assert.ok(names.includes('DNS:api.anthropic.com'));
     assert.ok(names.includes(`DNS:${TEST_HOST}`));
   } finally {
-    if (prev === undefined) delete process.env.TEAMCLAUDE_CONFIG;
-    else process.env.TEAMCLAUDE_CONFIG = prev;
+    if (prev === undefined) delete process.env.TEAM_MOKEA_CONFIG;
+    else process.env.TEAM_MOKEA_CONFIG = prev;
     await rm(dir, { recursive: true, force: true });
   }
 });

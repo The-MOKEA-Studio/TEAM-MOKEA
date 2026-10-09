@@ -11,8 +11,8 @@ export function getConfigPath() {
   const fromEnv = envVar('CONFIG');
   if (fromEnv) return fromEnv;
   const configDir = process.env.XDG_CONFIG_HOME || join(homedir(), '.config');
-  // The renamed file is used when it exists; until then, and for a fresh
-  // install, the file keeps its current name (issue #72, phase 1). The state
+  // The new file is used when it exists; for an existing installation, the
+  // previous filename remains the fallback. The state
   // file, crash log and certificates sit beside whichever one this returns.
   const renamed = join(configDir, `${NAME}.json`);
   if (existsSync(renamed)) return renamed;
@@ -160,7 +160,7 @@ function applyUpstreamProxy(config) {
   try {
     setUpstreamProxy(resolveUpstreamProxy(config));
   } catch (err) {
-    console.error(`[TeamClaude] Bad proxy setting in ${getConfigPath()}: ${err.message}`);
+    console.error(`[Team Mokea] Bad proxy setting in ${getConfigPath()}: ${err.message}`);
     process.exit(1);
   }
 }
@@ -177,7 +177,7 @@ export async function loadOrCreateConfig() {
     // the lazy fallback resolves it from the environment against an EMPTY
     // config. That fallback has no listener to compare against, so the
     // self-proxy guard cannot fire: an operator whose HTTPS_PROXY points at
-    // their own TeamClaude gets a CONNECT back into the proxy and a timeout,
+    // their own Team Mokea gets a CONNECT back into the proxy and a timeout,
     // on the one run where there is no config to explain it.
     applyUpstreamProxy(config);
   }
@@ -204,7 +204,7 @@ const LOCK_STALE_MS = 10_000;
 const LOCK_WAIT_MS = 2_000;
 const LOCK_POLL_MS = 25;
 
-/** The wait budget, read per acquisition: TEAMCLAUDE_CONFIG_LOCK_WAIT_MS
+/** The wait budget, read per acquisition: TEAM_MOKEA_CONFIG_LOCK_WAIT_MS
  * overrides the 2 s for a deployment whose writers are known to hold the
  * lock longer (and lets a test pick a budget its assertions do not race). */
 function lockWaitMs() {
@@ -238,7 +238,7 @@ async function acquireConfigLock(lockPath) {
       return true;
     } catch (err) {
       if (err.code !== 'EEXIST') {
-        console.error(`[TeamClaude] Cannot create ${lockPath} (${err.code || err.message}); writing the config without it`);
+        console.error(`[Team Mokea] Cannot create ${lockPath} (${err.code || err.message}); writing the config without it`);
         return false;
       }
     }
@@ -247,7 +247,7 @@ async function acquireConfigLock(lockPath) {
       continue;
     }
     if (Date.now() >= deadline) {
-      console.error(`[TeamClaude] ${lockPath} is still held by another process after ${waitMs}ms; writing the config without it`);
+      console.error(`[Team Mokea] ${lockPath} is still held by another process after ${waitMs}ms; writing the config without it`);
       return false;
     }
     await new Promise(resolve => setTimeout(resolve, LOCK_POLL_MS));
@@ -291,7 +291,7 @@ export async function saveConfig(config) {
 /**
  * Atomically update the config: re-reads from disk, calls updater(config),
  * then saves. Returns the updated config. This prevents overwriting changes
- * made by other processes (e.g. `teamclaude import` while the server runs), and
+ * made by other processes (e.g. `team-mokea import` while the server runs), and
  * holds the config lock across the read and the write so a concurrent writer —
  * in this process or another — waits its turn instead of clobbering the update.
  */

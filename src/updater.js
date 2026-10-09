@@ -1,11 +1,11 @@
 // Opt-out-able self-update, in the spirit of Claude Code's auto-updater.
 //
-// We ONLY ever touch a global npm install (`npm install -g @karpeleslab/teamclaude`):
+// We ONLY ever touch a global npm install (`npm install -g @the-mokea-studio/team-mokea`):
 //   - a git checkout (a `.git` at the package root) is a dev tree — never touched;
 //   - a local dependency / npx copy is left alone (we only notify).
 // Checks hit the npm registry at most once a day (cached in a small file next to
 // the config), so the overwhelmingly common invocation does zero network I/O.
-// Disable entirely with TEAMCLAUDE_DISABLE_AUTOUPDATE=1 or config.autoUpdate=false.
+// Disable entirely with TEAM_MOKEA_DISABLE_AUTOUPDATE=1 or config.autoUpdate=false.
 //
 // Every side-effecting dependency (fetch, spawn, the clock, the cache path) is
 // injectable so the logic is unit-testable without network or npm.
@@ -20,7 +20,7 @@ import { getConfigPath } from './config.js';
 import { safeLine } from './safe-text.js';
 import { envVar } from './brand.js';
 
-export const PKG_NAME = '@karpeleslab/teamclaude';
+export const PKG_NAME = '@the-mokea-studio/team-mokea';
 const REGISTRY = 'https://registry.npmjs.org';
 const DAY_MS = 24 * 60 * 60 * 1000;
 // Wide enough for `v1.2.3-rc.1+build`, narrow enough that a tag cannot be the
@@ -49,7 +49,7 @@ export function currentVersion(root = packageRoot()) {
  * version, else the literal `local`. `git` reports a checkout — npm cannot
  * update one, so nothing should offer to.
  *
- * The git calls are pinned to the package root. `teamclaude server` is started
+ * The git calls are pinned to the package root. `team-mokea server` is started
  * from the operator's own project directory, and resolving against the process
  * cwd would report that repository's sha as this package's version.
  *
@@ -217,8 +217,8 @@ export function isReleaseVersion(v) {
  * The install is a child process the event loop keeps running beside, never a
  * synchronous wait. `autoUpdate` runs this inside `server --headless`, the one
  * process every client depends on: a synchronous `npm install -g` blocked it
- * for the whole install, so the proxy accepted no connections, `teamclaude
- * status` timed out and `teamclaude run` refused to launch — unattended, on
+ * for the whole install, so the proxy accepted no connections, `team-mokea
+ * status` timed out and `team-mokea run` refused to launch — unattended, on
  * whichever day the daily check found a new version (#353). The result only
  * matters for the log line, and the new version applies on the next start
  * regardless, so nothing is gained by waiting inline.
@@ -253,9 +253,9 @@ let rootWarned = false;
  * common case: the expensive `npm root -g` probe only runs when an update is
  * actually available.
  *
- * Never runs as root. `sudo teamclaude server` would otherwise run
+ * Never runs as root. `sudo team-mokea server` would otherwise run
  * `npm install -g` as root on a daily schedule, off a version string fetched
- * from the network — the operator can run `teamclaude update` deliberately.
+ * from the network — the operator can run `team-mokea update` deliberately.
  *
  * `root`, `uid`, `check`, `kind` and `install` are injectable for tests.
  *
@@ -281,7 +281,7 @@ export async function autoUpdate({
   if (uid === 0) {
     if (!rootWarned) {
       rootWarned = true;
-      log('[TeamClaude] Auto-update is disabled when running as root. Update deliberately with: teamclaude update');
+      log('[Team Mokea] Auto-update is disabled when running as root. Update deliberately with: team-mokea update');
     }
     return { skipped: 'root' };
   }
@@ -289,18 +289,18 @@ export async function autoUpdate({
   if (!info) return { skipped: 'check-failed' };
   if (!info.updateAvailable) return { ...info, upToDate: true };
   if (!isReleaseVersion(info.latest)) {
-    log(`[TeamClaude] Ignoring registry "latest" that is not a release version: ${JSON.stringify(String(info.latest)).slice(0, 80)}`);
+    log(`[Team Mokea] Ignoring registry "latest" that is not a release version: ${JSON.stringify(String(info.latest)).slice(0, 80)}`);
     return { ...info, skipped: 'bad-version' };
   }
 
   if (await kind({ root }) !== 'global') {
-    log(`[TeamClaude] Update available: ${info.current} → ${info.latest}. Run: teamclaude update`);
+    log(`[Team Mokea] Update available: ${info.current} → ${info.latest}. Run: team-mokea update`);
     return { ...info, notified: true };
   }
-  log(`[TeamClaude] Updating ${info.current} → ${info.latest}…`);
+  log(`[Team Mokea] Updating ${info.current} → ${info.latest}…`);
   const ok = await install(info.latest);
   log(ok
-    ? `[TeamClaude] Updated to ${info.latest}. Restart teamclaude to use the new version.`
-    : `[TeamClaude] Auto-update failed. Run manually: npm install -g ${PKG_NAME}@latest`);
+    ? `[Team Mokea] Updated to ${info.latest}. Restart team-mokea to use the new version.`
+    : `[Team Mokea] Auto-update failed. Run manually: npm install -g ${PKG_NAME}@latest`);
   return { ...info, updated: ok };
 }

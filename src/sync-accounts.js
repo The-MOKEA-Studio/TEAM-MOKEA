@@ -89,8 +89,8 @@ export async function syncAccountsFromDisk(diskConfig, memConfig, accountManager
       claimed.add(accountManager.accounts.length - 1);
       added++;
       console.log(cfgAcct
-        ? `[TeamClaude] Re-admitting known account "${diskAcct.name}" from config`
-        : `[TeamClaude] Picked up new account "${diskAcct.name}" from config`);
+        ? `[Team Mokea] Re-admitting known account "${diskAcct.name}" from config`
+        : `[Team Mokea] Picked up new account "${diskAcct.name}" from config`);
       continue;
     }
 
@@ -130,7 +130,7 @@ export async function syncAccountsFromDisk(diskConfig, memConfig, accountManager
     mgr.allowExtraUsage = accountAllowsExtraUsage(diskAcct);
     // Same for a per-account routing proxy: it is read per request off this
     // object (server.js forwardRequest, ensureTokenFresh, the prober), so a
-    // disk edit or a `teamclaude routing` change takes effect on the very next
+    // disk edit or a `team-mokea routing` change takes effect on the very next
     // request without a restart. Through the constructor's own parse, so a bad
     // URL is refused and reported here as it would be at startup, and so is
     // one that points back at this server's own listener (memConfig's port is
@@ -201,7 +201,7 @@ export async function syncAccountsFromDisk(diskConfig, memConfig, accountManager
         const creds = await importCredentials(diskAcct.importFrom);
         freshCred = { accessToken: creds.accessToken, refreshToken: creds.refreshToken, expiresAt: creds.expiresAt };
       } catch (/** @type {any} */ err) {
-        console.error(`[TeamClaude] Re-import failed for "${safeLine(diskAcct.name, 64)}": ${err.message}`);
+        console.error(`[Team Mokea] Re-import failed for "${safeLine(diskAcct.name, 64)}": ${err.message}`);
       }
     } else if (diskAcct.type === 'oauth' && diskAcct.accessToken) {
       freshCred = { accessToken: diskAcct.accessToken, refreshToken: diskAcct.refreshToken, expiresAt: diskAcct.expiresAt };
@@ -220,7 +220,7 @@ export async function syncAccountsFromDisk(diskConfig, memConfig, accountManager
         freshCred.expiresAt < mgr.expiresAt;
       if (changed && !diskIsStaler) {
         accountManager.updateAccountTokens(mgr.index, freshCred);
-        console.log(`[TeamClaude] Refreshed credentials for "${safeLine(mgr.name, 64)}"`);
+        console.log(`[Team Mokea] Refreshed credentials for "${safeLine(mgr.name, 64)}"`);
       }
     } else if (freshCred.apiKey && mgr.credential !== freshCred.apiKey) {
       mgr.credential = freshCred.apiKey;
@@ -228,11 +228,11 @@ export async function syncAccountsFromDisk(diskConfig, memConfig, accountManager
       // A different key is a different credential: the 401 hold was about the
       // old one, and the operator who just fixed it should not wait it out.
       accountManager.clearCredentialRejected(mgr.index);
-      console.log(`[TeamClaude] Updated API key for "${safeLine(mgr.name, 64)}"`);
+      console.log(`[Team Mokea] Updated API key for "${safeLine(mgr.name, 64)}"`);
     }
   }
   // Accounts running here that no disk row claims any more were removed on
-  // disk (a `teamclaude remove` from another process, or a hand edit). A reload
+  // disk (a `team-mokea remove` from another process, or a hand edit). A reload
   // used to add only and leave them serving until the next restart, so an
   // operator's removal did not take effect when they asked for it. Drop them
   // from the manager and from the in-memory config, highest index first so
@@ -256,7 +256,7 @@ export async function syncAccountsFromDisk(diskConfig, memConfig, accountManager
     const gone = accountManager.accounts[i];
     if (claimed.has(i) || pendingAdds.has(gone.id)) continue;
     const cfgIdx = configIndexFor(memConfig.accounts, accountManager.accounts, i);
-    console.log(`[TeamClaude] Removed account "${safeLine(gone.name, 64)}": its config entry is gone from disk`);
+    console.log(`[Team Mokea] Removed account "${safeLine(gone.name, 64)}": its config entry is gone from disk`);
     accountManager.removeAccount(i);
     if (cfgIdx >= 0) memConfig.accounts.splice(cfgIdx, 1);
     dropped++;

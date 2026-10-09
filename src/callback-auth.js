@@ -26,7 +26,7 @@ import { safeLine } from './safe-text.js';
 /**
  * The OAuth2 application this CLI signs in as, registered in callback.net's own
  * realm (an `oaap-…` id). Public by design: the flow uses no client secret.
- * `TEAMROUTER_CALLBACK_CLIENT_ID` overrides it, for a self-registered app or a
+ * `TEAM_MOKEA_CALLBACK_CLIENT_ID` overrides it, for a self-registered app or a
  * test realm.
  */
 export const CALLBACK_CLIENT_ID = 'oaap-l33xry-xwk5-cvjc-b63o-roumhmtu';
@@ -92,7 +92,7 @@ export function callbackBase(env = process.env, warn = (m) => console.error(m)) 
   if (u && (u.protocol === 'https:' || (u.protocol === 'http:' && loopback))) return u.origin;
   if (warnedBase !== raw) {
     warnedBase = raw;
-    warn(`[TeamClaude] ignoring CALLBACK_API_BASE=${JSON.stringify(raw)}: it must be https:// (plain http:// is allowed for loopback only); using ${DEFAULT_BASE}`);
+    warn(`[Team Mokea] ignoring CALLBACK_API_BASE=${JSON.stringify(raw)}: it must be https:// (plain http:// is allowed for loopback only); using ${DEFAULT_BASE}`);
   }
   return DEFAULT_BASE;
 }
@@ -298,7 +298,7 @@ export async function loginCallback({
   sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); }),
   now = Date.now,
 } = {}) {
-  if (!clientId) throw new Error('no callback.net client id is configured (set TEAMROUTER_CALLBACK_CLIENT_ID)');
+  if (!clientId) throw new Error('no callback.net client id is configured (set TEAM_MOKEA_CALLBACK_CLIENT_ID)');
   const app = `OAuth2/App/${encodeURIComponent(clientId)}`;
   const call = { base, fetchImpl };
 

@@ -10,7 +10,7 @@ import { AccountManager } from '../src/account-manager.js';
 import { createProxyServer } from '../src/server.js';
 import { closedPort } from '../test-helpers/spawn-server.js';
 
-// `teamclaude switch` drives the real control endpoint, so these run the CLI
+// `team-mokea switch` drives the real control endpoint, so these run the CLI
 // against a real proxy server rather than a stubbed one.
 
 const cliPath = fileURLToPath(new URL('../src/index.js', import.meta.url));
@@ -25,7 +25,7 @@ function listen(server) {
 }
 
 async function writeConfig(port) {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-switch-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-switch-'));
   const path = join(dir, 'config.json');
   await writeFile(path, JSON.stringify({
     proxy: { port, apiKey: 'tc-test' },
@@ -43,7 +43,7 @@ async function writeConfig(port) {
 
 function runCli(configPath, cliArgs, extraEnv = {}) {
   const child = spawn(process.execPath, [cliPath, ...cliArgs], {
-    env: { ...process.env, TEAMCLAUDE_CONFIG: configPath, ...extraEnv },
+    env: { ...process.env, TEAM_MOKEA_CONFIG: configPath, ...extraEnv },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let stdout = '';
@@ -115,7 +115,7 @@ async function withDisabled(fn) {
   const am = new AccountManager(accts, 0.98);
   const proxy = createProxyServer(am, { proxy: { apiKey: 'tc-test' }, upstream: 'https://api.anthropic.com' }, {});
   const port = await listen(proxy);
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-switch-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-switch-'));
   const path = join(dir, 'config.json');
   await writeFile(path, JSON.stringify({
     proxy: { port, apiKey: 'tc-test' }, upstream: 'https://api.anthropic.com',
@@ -155,10 +155,10 @@ test('the listing marks a disabled account', async () => {
 test('an unexpected reply is reported as such, not as a down server', async () => {
   const impostor = http.createServer((_req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end('<html>not teamclaude</html>');
+    res.end('<html>not team-mokea</html>');
   });
   const port = await listen(impostor);
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-switch-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-switch-'));
   const path = join(dir, 'config.json');
   await writeFile(path, JSON.stringify({
     proxy: { port, apiKey: 'tc-test' }, upstream: 'https://api.anthropic.com',
@@ -169,18 +169,18 @@ test('an unexpected reply is reported as such, not as a down server', async () =
     assert.equal(res.code, 1);
     assert.doesNotMatch(res.stderr, /Is the server running\?/, 'something answered, so this is not a down server');
     assert.doesNotMatch(res.stdout, /No accounts configured/, 'an unparseable reply is not an empty fleet');
-    assert.match(res.stderr, /unexpected|not a teamclaude|invalid/i, res.stderr);
+    assert.match(res.stderr, /unexpected|not a team-mokea|invalid/i, res.stderr);
   } finally {
     impostor.close();
   }
 });
 
-// An old server has no /teamclaude/switch, so the request falls through to the
+// An old server has no /team-mokea/switch, so the request falls through to the
 // proxy path and Anthropic answers with an error OBJECT. Printing it raw yields
 // "[object Object]", which tells the user nothing.
 test('a non-string error field does not print as [object Object]', async () => {
   const oldServer = http.createServer((req, res) => {
-    if (req.url === '/teamclaude/status') {
+    if (req.url === '/team-mokea/status') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ currentAccount: 'alice@example.com', accounts: [{ name: 'alice@example.com' }] }));
       return;
@@ -189,7 +189,7 @@ test('a non-string error field does not print as [object Object]', async () => {
     res.end(JSON.stringify({ type: 'error', error: { type: 'invalid_request_error', message: 'nope' } }));
   });
   const port = await listen(oldServer);
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-switch-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-switch-'));
   const path = join(dir, 'config.json');
   await writeFile(path, JSON.stringify({
     proxy: { port, apiKey: 'tc-test' }, upstream: 'https://api.anthropic.com',
@@ -223,7 +223,7 @@ test('status diagnoses an accepted connection whose server never answers', async
   const port = await listen(silent);
   const configPath = await writeConfig(port);
   try {
-    const res = await runCli(configPath, ['status'], { TEAMCLAUDE_STATUS_TIMEOUT_MS: '100' });
+    const res = await runCli(configPath, ['status'], { TEAM_MOKEA_STATUS_TIMEOUT_MS: '100' });
     assert.equal(res.code, 1);
     assert.match(res.stderr, /did not answer status within 100ms/);
     assert.match(res.stderr, /event loop may be stalled/);

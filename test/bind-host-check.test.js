@@ -4,7 +4,7 @@ import http from 'node:http';
 import { AccountManager } from '../src/account-manager.js';
 import { createProxyServer } from '../src/server.js';
 
-// The address the server binds is `TEAMCLAUDE_HOST || proxy.host || 127.0.0.1`,
+// The address the server binds is `TEAM_MOKEA_HOST || proxy.host || 127.0.0.1`,
 // but the DNS-rebinding Host check was handed `proxy.host` alone. Bound off-box
 // through the env var, with nothing in the config, a key-less loopback caller
 // naming the bind address was refused as though it named a stranger (#423).
@@ -13,7 +13,7 @@ const listen = (s) => new Promise(r => s.listen(0, '127.0.0.1', () => r(s.addres
 
 function statusWithHost(port, host) {
   return new Promise((resolve, reject) => {
-    const req = http.request({ host: '127.0.0.1', port, method: 'GET', path: '/teamclaude/status', headers: { host } }, (res) => {
+    const req = http.request({ host: '127.0.0.1', port, method: 'GET', path: '/team-mokea/status', headers: { host } }, (res) => {
       res.resume();
       res.on('end', () => resolve(res.statusCode));
     });

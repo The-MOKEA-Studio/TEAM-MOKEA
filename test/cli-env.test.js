@@ -6,14 +6,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// `teamclaude env` as a subprocess against a throwaway config: the mode it
+// `team-mokea env` as a subprocess against a throwaway config: the mode it
 // emits is decided by `defaultClientMode` unless a flag says otherwise. The
 // harness is adapted from #384.
 
 const cliPath = fileURLToPath(new URL('../src/index.js', import.meta.url));
 
 async function runEnv(args = [], { config = {}, env = {} } = {}) {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-env-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-env-'));
   const configPath = join(dir, 'config.json');
   await writeFile(configPath, JSON.stringify({
     proxy: { port: 3456, apiKey: 'test' },
@@ -23,7 +23,7 @@ async function runEnv(args = [], { config = {}, env = {} } = {}) {
   }));
   try {
     const child = spawn(process.execPath, [cliPath, 'env', ...args], {
-      env: { ...process.env, ...env, TEAMCLAUDE_CONFIG: configPath, TEAMCLAUDE_DISABLE_AUTOUPDATE: '1' },
+      env: { ...process.env, ...env, TEAM_MOKEA_CONFIG: configPath, TEAM_MOKEA_DISABLE_AUTOUPDATE: '1' },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let stdout = '';
@@ -72,7 +72,7 @@ test('--mitm overrides a base-url default, and the hint names the flag', async (
   const result = await runEnv(['--mitm'], { config: { defaultClientMode: 'base-url' } });
   assert.equal(result.code, 0, result.stderr);
   assert.match(result.stdout, /^export HTTPS_PROXY=http:\/\/127\.0\.0\.1:3456$/m);
-  assert.match(result.stderr, /teamclaude env --mitm/);
+  assert.match(result.stderr, /team-mokea env --mitm/);
 });
 
 test('env rejects contradictory mode flags without writing to stdout', async () => {

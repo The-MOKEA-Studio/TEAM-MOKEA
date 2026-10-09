@@ -1,22 +1,22 @@
 # Proxy modes
 
-Two independent things, both about how the traffic physically travels: how `claude` reaches TeamClaude, and how TeamClaude reaches Anthropic.
+Two independent things, both about how the traffic physically travels: how `claude` reaches Team Mokea, and how Team Mokea reaches Anthropic.
 
 ## MITM proxy mode (default)
 
-The plain reverse-proxy only intercepts what `ANTHROPIC_BASE_URL` covers. Some Claude Code features (e.g. the **Claude Design MCP**) use a **hardcoded** `https://api.anthropic.com` URL that ignores that variable, so they bypass the proxy. MITM proxy mode captures those too, which is why it's the default for `teamclaude run` (and the shell alias):
+The plain reverse-proxy only intercepts what `ANTHROPIC_BASE_URL` covers. Some Claude Code features (e.g. the **Claude Design MCP**) use a **hardcoded** `https://api.anthropic.com` URL that ignores that variable, so they bypass the proxy. MITM proxy mode captures those too, which is why it's the default for `team-mokea run` (and the shell alias):
 
 ```bash
-teamclaude run -- <claude args...>
+team-mokea run -- <claude args...>
 ```
 
 To opt out and route via `ANTHROPIC_BASE_URL` only, pass `--no-mitm`:
 
 ```bash
-teamclaude run --no-mitm -- <claude args...>
+team-mokea run --no-mitm -- <claude args...>
 ```
 
-MITM mode launches claude pointed at TeamClaude as an **HTTPS forward proxy** (`HTTPS_PROXY`) and trusts a locally-generated CA (`NODE_EXTRA_CA_CERTS`). For an intercepted host, TeamClaude **terminates** the tunnel with a real HTTP/2 server (HTTP/1.1 clients are handled too) presenting its local leaf, then **forwards each request with a buffering, retrying client** — the same path the base URL mode uses. On each request it:
+MITM mode launches claude pointed at Team Mokea as an **HTTPS forward proxy** (`HTTPS_PROXY`) and trusts a locally-generated CA (`NODE_EXTRA_CA_CERTS`). For an intercepted host, Team Mokea **terminates** the tunnel with a real HTTP/2 server (HTTP/1.1 clients are handled too) presenting its local leaf, then **forwards each request with a buffering, retrying client** — the same path the base URL mode uses. On each request it:
 
 - injects the active account's real credential, dropping any client `x-api-key`: OAuth accounts get `authorization: Bearer …`, API-key accounts get `x-api-key`;
 - rewrites the **`account_uuid`** inside `metadata.user_id` to the active account's UUID (so the body agrees with the injected token);
@@ -30,21 +30,21 @@ A pool with Codex accounts also intercepts `chatgpt.com`. Inside that tunnel onl
 
 ### Trust model
 
-- The CA is generated locally, stored in the config dir, and trusted **only** by the claude process you launch via `teamclaude run` (through `NODE_EXTRA_CA_CERTS`) — it is **never** added to your system trust store. The leaf private key is `0600`; the CA private key is never written to disk.
-- TeamClaude still verifies the **real** Anthropic certificate on the upstream leg.
+- The CA is generated locally, stored in the config dir, and trusted **only** by the claude process you launch via `team-mokea run` (through `NODE_EXTRA_CA_CERTS`) — it is **never** added to your system trust store. The leaf private key is `0600`; the CA private key is never written to disk.
+- Team Mokea still verifies the **real** Anthropic certificate on the upstream leg.
 
 Verify the proxy and CA without any credentials — the proxy always answers a built-in test host:
 
 ```bash
-# (with the server running and certs generated, e.g. after one `teamclaude run`)
-curl --proxy http://localhost:3456 --cacert ~/.config/teamclaude-ca.pem https://www.example.org/
-# → {"teamclaude":"mitm-proxy-ok","host":"www.example.org",...}
+# (with the server running and certs generated, e.g. after one `team-mokea run`)
+curl --proxy http://localhost:3456 --cacert ~/.config/team-mokea-ca.pem https://www.example.org/
+# → {"team-mokea":"mitm-proxy-ok","host":"www.example.org",...}
 ```
 
 ## Upstream proxy
 
 For a host that has **no direct route to the internet** — the corporate case, where
-every outbound connection must go through an HTTP proxy. Without it TeamClaude
+every outbound connection must go through an HTTP proxy. Without it Team Mokea
 fails with `connect ETIMEDOUT` on the first upstream request, even though Claude
 Code itself works ([#155](https://github.com/KarpelesLab/teamclaude/issues/155)).
 
@@ -58,7 +58,7 @@ restart.
 
 - Covers **all** Anthropic-bound traffic: request forwarding, OAuth login, token
   refresh, profile and usage lookups, and (since per-account routing landed)
-  `teamclaude api`, which used to go direct. A proxy that covered only some of
+  `team-mokea api`, which used to go direct. A proxy that covered only some of
   them would leave you able to refresh an account but not add one, or the
   reverse.
 - `HTTPS_PROXY` / `ALL_PROXY` are picked up automatically when the config sets
@@ -68,8 +68,8 @@ restart.
   silently in force.
 - `NO_PROXY` (or `noProxy`) exempts hosts by suffix; `"upstreamProxy": false`
   ignores the environment entirely.
-- **A proxy that is this server is refused.** `teamclaude env` exports
-  `HTTPS_PROXY` pointing at TeamClaude, so a server or CLI started from that
+- **A proxy that is this server is refused.** `team-mokea env` exports
+  `HTTPS_PROXY` pointing at Team Mokea, so a server or CLI started from that
   shell would inherit itself as its egress proxy — every upstream call would
   re-enter the proxy and be answered for whichever account it selected, silently
   (a usage probe would then store that one account's quota under all of them).
@@ -79,7 +79,7 @@ restart.
   ciphertext only, and certificate verification is unchanged. A proxy that
   intercepts TLS needs its CA in `NODE_EXTRA_CA_CERTS`.
 - SOCKS URLs are refused here (`http` `CONNECT` only), as is `https://` to the
-  proxy itself: TeamClaude does not speak TLS *to* the proxy, and accepting the
+  proxy itself: Team Mokea does not speak TLS *to* the proxy, and accepting the
   scheme would send the `CONNECT` (credentials included) in plaintext to port
   443. Write `http://host:port` — the tunnel through it is end-to-end TLS
   regardless. (SOCKS **is** supported one level down, per account: see
@@ -99,9 +99,9 @@ does the opposite: it pins **one** account to its own proxy and leaves the rest
 untouched.
 
 ```bash
-teamclaude login --name "waffles@waffle.com" --routing "socks5h://alice:s3cret@proxy.example.com:1080"
-teamclaude routing waffles@waffle.com socks5h://alice:s3cret@proxy.example.com:1080
-teamclaude routing waffles@waffle.com none   # back to the fleet path
+team-mokea login --name "waffles@waffle.com" --routing "socks5h://alice:s3cret@proxy.example.com:1080"
+team-mokea routing waffles@waffle.com socks5h://alice:s3cret@proxy.example.com:1080
+team-mokea routing waffles@waffle.com none   # back to the fleet path
 ```
 
 ```json
@@ -138,11 +138,11 @@ for the CLI reference.
 
 ## sx.org proxy mode
 
-Off by default. Some transient `429`s key on the proxy's **outbound IP**, not the account, so rotating accounts doesn't help. To work around them, TeamClaude can route upstream requests through a residential proxy from [sx.org](https://sx.org), giving a different egress IP.
+Off by default. Some transient `429`s key on the proxy's **outbound IP**, not the account, so rotating accounts doesn't help. To work around them, Team Mokea can route upstream requests through a residential proxy from [sx.org](https://sx.org), giving a different egress IP.
 
-No sx.org account yet? Sign up through TeamClaude's referral link, **<https://sx.org/c/ufVrLW>** — it costs you nothing extra, and the referral supports TeamClaude development.
+No sx.org account yet? Sign up through Team Mokea's referral link, **<https://sx.org/c/ufVrLW>** — it costs you nothing extra, and the referral supports Team Mokea development.
 
-Open the TUI, press **`g`** for the settings screen, and put your sx.org API key in the **sx.org API key** row (stored in `config.sx.apiKey`). TeamClaude reuses an existing active proxy port on your sx.org account, or auto-creates a residential US one, and dials the upstream through it via HTTP `CONNECT` on **both** the reverse-proxy and MITM paths.
+Open the TUI, press **`g`** for the settings screen, and put your sx.org API key in the **sx.org API key** row (stored in `config.sx.apiKey`). Team Mokea reuses an existing active proxy port on your sx.org account, or auto-creates a residential US one, and dials the upstream through it via HTTP `CONNECT` on **both** the reverse-proxy and MITM paths.
 
 The **sx.org mode** row cycles with `←`/`→`:
 

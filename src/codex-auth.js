@@ -189,7 +189,7 @@ function openBrowser(url) {
   const cmd = process.platform === 'darwin' ? 'open'
     : process.platform === 'win32' ? 'start ""'
       : 'xdg-open';
-  exec(`${cmd} ${JSON.stringify(url)}`, err => { if (err) console.error(`Could not open a browser (${cmd}): ${err.message} — open the URL by hand or run \`teamclaude login\` on a machine with one`); });
+  exec(`${cmd} ${JSON.stringify(url)}`, err => { if (err) console.error(`Could not open a browser (${cmd}): ${err.message} — open the URL by hand or run \`team-mokea login\` on a machine with one`); });
 }
 
 /**

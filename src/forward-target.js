@@ -7,14 +7,14 @@
 // proxy API key (a local process is trusted), so a remote holder of a low-trust
 // clientKeys entry could `CONNECT 127.0.0.1:<our port>`, speak plain HTTP inside
 // the tunnel, and arrive at our own listener AS a loopback client: unauthenticated,
-// unattributed access to /teamclaude/switch, /reload, /status and /v1/messages,
+// unattributed access to /team-mokea/switch, /reload, /status and /v1/messages,
 // plus any other loopback-only service on the box and the link-local cloud
 // metadata endpoint (169.254.169.254). The plain-HTTP relay had the same hole.
 //
 // So a forward may not target loopback, the unspecified address (connecting to
 // 0.0.0.0 lands on loopback), or link-local. RFC1918 ranges stay open: a LAN
 // target is a legitimate thing to proxy to. Nothing legitimate is lost on the
-// loopback side either — `teamclaude run`/`env` hand the launched client
+// loopback side either — `team-mokea run`/`env` hand the launched client
 // NO_PROXY=localhost,127.0.0.1,::1, so its own loopback traffic never comes here.
 //
 // The check runs on the RESOLVED address, not the name, because a name is what

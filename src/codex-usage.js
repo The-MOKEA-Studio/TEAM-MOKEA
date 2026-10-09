@@ -119,7 +119,7 @@ export function creditCount(value) {
 }
 
 /**
- * Convert the private `/wham/usage` response into TeamClaude quota fields.
+ * Convert the private `/wham/usage` response into Team Mokea quota fields.
  *
  * @param {any} data
  */

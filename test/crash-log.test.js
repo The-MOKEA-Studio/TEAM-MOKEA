@@ -71,12 +71,12 @@ test('crashes append rather than overwrite', async () => {
 });
 
 test('the crash log sits next to the config', () => {
-  const prev = process.env.TEAMCLAUDE_CONFIG;
-  process.env.TEAMCLAUDE_CONFIG = '/tmp/somewhere/teamclaude.json';
+  const prev = process.env.TEAM_MOKEA_CONFIG;
+  process.env.TEAM_MOKEA_CONFIG = '/tmp/somewhere/team-mokea.json';
   try {
-    assert.equal(getCrashLogPath(), '/tmp/somewhere/teamclaude-crash.log');
+    assert.equal(getCrashLogPath(), '/tmp/somewhere/team-mokea-crash.log');
   } finally {
-    if (prev === undefined) delete process.env.TEAMCLAUDE_CONFIG;
-    else process.env.TEAMCLAUDE_CONFIG = prev;
+    if (prev === undefined) delete process.env.TEAM_MOKEA_CONFIG;
+    else process.env.TEAM_MOKEA_CONFIG = prev;
   }
 });

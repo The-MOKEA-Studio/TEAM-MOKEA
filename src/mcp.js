@@ -211,7 +211,7 @@ export async function handleMcpMessage({ bodyText, headers, tools, serverInfo, i
   } catch (err) {
     if (err instanceof McpError) return failure(id, err.code, err.message, stateless, err.data, err.status);
     // Anything else is ours, not the caller's: the reason goes to the log.
-    console.error('[TeamClaude] MCP request failed:', err instanceof Error ? err.message : err);
+    console.error('[Team Mokea] MCP request failed:', err instanceof Error ? err.message : err);
     return failure(id, INTERNAL_ERROR, 'Internal error; see the proxy log', stateless);
   }
 }

@@ -552,7 +552,7 @@ test('a per-account `true` redeems nothing while the fleet switch is off', async
 });
 
 // Read off the shared config per refusal, not snapshotted at construction: the
-// TUI toggle and `POST /teamclaude/reload` both work by mutating that object,
+// TUI toggle and `POST /team-mokea/reload` both work by mutating that object,
 // so an attempt after the flip has to see the new answer.
 test('flipping the fleet switch binds on the next refusal, with no restart', async () => {
   const config = {};

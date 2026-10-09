@@ -23,7 +23,7 @@ function close(server) {
 
 function runServer(configPath) {
   const child = spawn(process.execPath, [cliPath, 'server'], {
-    env: { ...process.env, TEAMCLAUDE_CONFIG: configPath },
+    env: { ...process.env, TEAM_MOKEA_CONFIG: configPath },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
@@ -57,7 +57,7 @@ function runServer(configPath) {
 test('server exits cleanly when configured port is already in use', async () => {
   const occupied = http.createServer((_req, res) => res.end('ok'));
   const port = await listen(occupied);
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-'));
   const configPath = join(dir, 'config.json');
   await writeFile(configPath, JSON.stringify({
     proxy: { port, apiKey: 'tc-test' },
@@ -70,7 +70,7 @@ test('server exits cleanly when configured port is already in use', async () => 
     const result = await runServer(configPath);
     assert.equal(result.code, 1);
     assert.match(result.stderr, new RegExp(`Port ${port} is already in use`));
-    assert.match(result.stderr, /teamclaude status/);
+    assert.match(result.stderr, /team-mokea status/);
     assert.doesNotMatch(result.stderr, /Unhandled 'error' event/);
   } finally {
     await close(occupied);

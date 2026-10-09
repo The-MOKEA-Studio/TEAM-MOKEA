@@ -1,6 +1,6 @@
-# End-to-end test of the NixOS module: boot a VM, enable services.teamclaude
+# End-to-end test of the NixOS module: boot a VM, enable services.team-mokea
 # with a seeded config, and assert the service starts, binds its port, and the
-# app answers on /teamclaude/status with the seeded account. Uses an apikey
+# app answers on /team-mokea/status with the seeded account. Uses an apikey
 # account so startup performs no OAuth refresh or other network call (NixOS test
 # VMs have no network) — the key is never exercised, only parsed.
 {
@@ -10,7 +10,7 @@
 }:
 
 let
-  seedConfig = pkgs.writeText "teamclaude-seed.json" (builtins.toJSON {
+  seedConfig = pkgs.writeText "team-mokea-seed.json" (builtins.toJSON {
     proxy = {
       port = 3456;
       apiKey = "tc-test-secret";
@@ -26,18 +26,18 @@ let
   });
 in
 pkgs.testers.runNixOSTest {
-  name = "teamclaude-module";
+  name = "team-mokea-module";
 
   nodes.machine =
     { ... }:
     {
-      imports = [ self.nixosModules.teamclaude ];
+      imports = [ self.nixosModules.team-mokea ];
 
       environment.systemPackages = [ pkgs.curl ];
 
-      services.teamclaude = {
+      services.team-mokea = {
         enable = true;
-        package = self.packages.${system}.teamclaude;
+        package = self.packages.${system}.team-mokea;
         # configSource is typed `str`; interpolate the derivation to its
         # store-path string (which also pulls it into the VM's closure).
         configSource = "${seedConfig}";
@@ -45,16 +45,16 @@ pkgs.testers.runNixOSTest {
     };
 
   testScript = ''
-    machine.wait_for_unit("teamclaude.service")
+    machine.wait_for_unit("team-mokea.service")
     machine.wait_for_open_port(3456)
 
     # Loopback is exempt from the proxy-key gate, so this needs no api key.
     # A 200 proves the server is up and routing; the seeded account name in the
     # body proves configSource was copied and parsed by the app.
-    status = machine.succeed("curl -sf http://127.0.0.1:3456/teamclaude/status")
+    status = machine.succeed("curl -sf http://127.0.0.1:3456/team-mokea/status")
     assert "test-apikey" in status, f"seeded account missing from status: {status}"
 
     # The mutable config was materialized at the module's default path.
-    machine.succeed("test -f /var/lib/teamclaude/teamclaude.json")
+    machine.succeed("test -f /var/lib/team-mokea/team-mokea.json")
   '';
 }

@@ -127,10 +127,10 @@ export class Warmer {
       if (!wasOn) this.warmAll().catch(() => {});
       this.timer = setInterval(() => this.warmAll().catch(() => {}), intervalMs);
       this.timer.unref?.();
-      this.log(`[TeamClaude] Keep-warm enabled (every ${Math.round(intervalMs / 1000)}s)`);
+      this.log(`[Team Mokea] Keep-warm enabled (every ${Math.round(intervalMs / 1000)}s)`);
     } else if (wasOn) {
       this.nextRunAt = null;
-      this.log('[TeamClaude] Keep-warm disabled');
+      this.log('[Team Mokea] Keep-warm disabled');
     }
   }
 
@@ -173,7 +173,7 @@ export class Warmer {
     }, delay);
     this.timer = timer;
     this.timer.unref?.();
-    this.log(`[TeamClaude] Keep-warm scheduled for ${this.scheduleStatus.nextWarmupAt}`);
+    this.log(`[Team Mokea] Keep-warm scheduled for ${this.scheduleStatus.nextWarmupAt}`);
   }
 
   stop() {
@@ -304,7 +304,7 @@ export class Warmer {
     }, delay);
     this._deferredWarmups.set(account, timer);
     timer.unref?.();
-    this.log(`[TeamClaude] Keep-warm delaying "${account.name}" until ${new Date(runAt).toISOString()} (5h reset within 2m)`);
+    this.log(`[Team Mokea] Keep-warm delaying "${account.name}" until ${new Date(runAt).toISOString()} (5h reset within 2m)`);
   }
 
   _clearDeferredWarmups() {
@@ -428,7 +428,7 @@ function defaultSpawn({ command, args, env, timeoutMs, signal }) {
     try {
       // On Windows the `claude` on PATH is npm's .cmd shim, which a shell-less
       // spawn never resolves (it only tries .exe), so warming failed with ENOENT.
-      // Same platform guard `teamclaude run` applies to its own spawnSync.
+      // Same platform guard `team-mokea run` applies to its own spawnSync.
       child = spawn(command, args, { env, stdio: 'ignore', shell: process.platform === 'win32' });
     } catch (err) {
       reject(err);

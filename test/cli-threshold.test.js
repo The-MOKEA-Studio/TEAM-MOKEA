@@ -6,8 +6,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// `teamclaude threshold` drives the real CLI as a subprocess against a throwaway
-// TEAMCLAUDE_CONFIG, so the user's real config is never touched. The port here
+// `team-mokea threshold` drives the real CLI as a subprocess against a throwaway
+// TEAM_MOKEA_CONFIG, so the user's real config is never touched. The port here
 // is one nothing listens on: the command notifies a running server after a
 // write, and that notification has to be a no-op for the test to be about the
 // config file.
@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const cliPath = fileURLToPath(new URL('../src/index.js', import.meta.url));
 
 async function writeConfig(switchThreshold) {
-  const dir = await mkdtemp(join(tmpdir(), 'teamclaude-threshold-'));
+  const dir = await mkdtemp(join(tmpdir(), 'team-mokea-threshold-'));
   const path = join(dir, 'config.json');
   const config = {
     proxy: { port: 3, apiKey: 'tc-test' },
@@ -30,7 +30,7 @@ async function writeConfig(switchThreshold) {
 
 function runCli(configPath, cliArgs) {
   const child = spawn(process.execPath, [cliPath, ...cliArgs], {
-    env: { ...process.env, TEAMCLAUDE_CONFIG: configPath },
+    env: { ...process.env, TEAM_MOKEA_CONFIG: configPath },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let stdout = '';
@@ -101,7 +101,7 @@ test('an out-of-range percentage is refused without touching the config', async 
   for (const bad of ['0', '101', 'abc']) {
     const res = await runCli(configPath, ['threshold', bad]);
     assert.equal(res.code, 1, `${bad}: ${res.stderr}`);
-    assert.match(res.stderr, /Usage: teamclaude threshold/);
+    assert.match(res.stderr, /Usage: team-mokea threshold/);
   }
   assert.equal(await readFile(configPath, 'utf8'), before, 'a refused set must not write the config');
 });
@@ -121,6 +121,6 @@ test('mixing a bare number with a bucket assignment is refused', async () => {
   const before = await readFile(configPath, 'utf8');
   const res = await runCli(configPath, ['threshold', '90', 'unified7d=80']);
   assert.equal(res.code, 1, res.stderr);
-  assert.match(res.stderr, /Usage: teamclaude threshold/);
+  assert.match(res.stderr, /Usage: team-mokea threshold/);
   assert.equal(await readFile(configPath, 'utf8'), before);
 });

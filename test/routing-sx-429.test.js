@@ -9,7 +9,7 @@ import { join } from 'node:path';
 // Defense in depth, as in the other in-process server tests: nothing imported
 // here reads the config path, and this keeps it that way if one ever does.
 const TMP = mkdtempSync(join(tmpdir(), 'tc-routing-sx-'));
-process.env.TEAMCLAUDE_CONFIG = join(TMP, 'config.json');
+process.env.TEAM_MOKEA_CONFIG = join(TMP, 'config.json');
 
 const { AccountManager } = await import('../src/account-manager.js');
 const { createProxyServer } = await import('../src/server.js');

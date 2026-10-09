@@ -77,7 +77,7 @@ jobs:
         run: nix flake check --no-update-lock-file -L
 
       - name: Smoke test the CLI wrapper
-        run: nix run --no-update-lock-file .#teamclaude -- help
+        run: nix run --no-update-lock-file .#team-mokea -- help
 
   # Single stable status check for branch protection to require, independent of
   # how many implementation jobs run. Always runs and fails explicitly if any
