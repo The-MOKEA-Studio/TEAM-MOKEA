@@ -28,12 +28,13 @@ const PULSE_FG = [96, 36, 37, 36];
 
 // Repaint cadence.
 //
-// The spinner is drawn alongside in-flight requests, and a new activity entry
-// gets a brief pulse. Once both finish, slow the tick so an idle proxy does not
-// keep waking a laptop just to redraw an unchanged frame (#134).
+// The header animates when the screen opens, the spinner runs alongside
+// in-flight requests, and new activity gets a brief pulse. Once those finish,
+// slow the tick so an idle proxy does not keep waking a laptop (#134).
 const SPIN_MS = 500;
 const IDLE_TICK_MS = 5_000;
 const ACTIVITY_PULSE_MS = 1_500;
+const STARTUP_MS = 2_000;
 // Even when the composed frame is unchanged, repaint occasionally: the terminal
 // is shared state, and anything that writes over it (a stray warning, a resumed
 // job) would otherwise leave the screen corrupted until the next real change.
@@ -657,6 +658,8 @@ export class TUI {
     this.inputSecret = false;    // a key is being typed: the footer echoes * for each char
     this.inputReturn = 'normal'; // mode to fall back to when an input is cancelled
     this.frame = 0;
+    this._startupAt = 0;
+    this._startupUntil = 0;
     this._activityPulseUntil = 0;
     this._switchPulseUntil = 0;
     this._switchPulseIndex = -1;
@@ -702,6 +705,8 @@ export class TUI {
 
   start() {
     this.running = true;
+    this._startupAt = Date.now();
+    this._startupUntil = this._startupAt + STARTUP_MS;
     this._openActivityLog();
     // Node puts a TTY stdout in BLOCKING mode, so every paint is a synchronous
     // write(2) that returns only when the terminal has drained the pty. That
@@ -786,7 +791,8 @@ export class TUI {
 
   /** Fast while something is animating, slow when there is nothing to animate. */
   _animating() {
-    return this.active.size > 0 || Date.now() < this._activityPulseUntil || Date.now() < this._switchPulseUntil;
+    const now = Date.now();
+    return this.active.size > 0 || now < this._startupUntil || now < this._activityPulseUntil || now < this._switchPulseUntil;
   }
 
   _tickDelay() { return this._animating() ? SPIN_MS : IDLE_TICK_MS; }
@@ -2117,7 +2123,9 @@ export class TUI {
     const lines = [];
 
     // ── Header
-    const left = ` ${cyan('◆')} ${bold('Team Mokea')}`;
+    const starting = Date.now() < this._startupUntil;
+    const logo = starting ? fg(PULSE_FG[this.frame % PULSE_FG.length], '◆') : cyan('◆');
+    const left = ` ${logo} ${bold('Team Mokea')}`;
     const port = this.config.proxy?.port || 3456;
     const sess = this.am.sessionStats();
     const sessStr = (sess.active || sess.known)
@@ -2149,7 +2157,9 @@ export class TUI {
     lines.push(midFits
       ? left + ' '.repeat(start - lw) + mid + ' '.repeat(W - rw - start - mw) + right
       : left + ' '.repeat(Math.max(1, W - lw - rw)) + right);
-    lines.push(' ' + dim('─'.repeat(W - 2)));
+    const ruleWidth = W - 2;
+    const filled = starting ? Math.min(ruleWidth, Math.floor((Date.now() - this._startupAt) / STARTUP_MS * ruleWidth)) : 0;
+    lines.push(' ' + (filled ? cyan('━'.repeat(filled)) : '') + dim('─'.repeat(ruleWidth - filled)));
 
     const footerH = 2;
     // While a prompt is open (mode 'input') keep showing the screen it was
