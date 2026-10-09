@@ -20,21 +20,24 @@ import { sanitizeText, safeLine } from './safe-text.js';
 // all read them from there, so they cannot drift apart (#426).
 import { MAX_PROBE_SECONDS, ROUTE_COLORS } from './config-ops.js';
 import { isLocalUpstream } from './provider.js';
+import { splashLogo, SPLASH_LOGO_WIDTH, SPLASH_LOGO_HEIGHT } from './splash-logo.js';
 
 // ── ANSI helpers ─────────────────────────────────────────────
 
 const SPINNER = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'.split('');
 const PULSE_FG = [96, 36, 37, 36];
+const SPLASH_BG = [3, 18, 33];
 
 // Repaint cadence.
 //
-// The header animates when the screen opens, the spinner runs alongside
+// The splash runs only when the screen opens. The spinner runs alongside
 // in-flight requests, and new activity gets a brief pulse. Once those finish,
 // slow the tick so an idle proxy does not keep waking a laptop (#134).
+const SPLASH_TICK_MS = 100;
 const SPIN_MS = 500;
 const IDLE_TICK_MS = 5_000;
 const ACTIVITY_PULSE_MS = 1_500;
-const STARTUP_MS = 2_000;
+const STARTUP_MS = 3_400;
 // Even when the composed frame is unchanged, repaint occasionally: the terminal
 // is shared state, and anything that writes over it (a stray warning, a resumed
 // job) would otherwise leave the screen corrupted until the next real change.
@@ -48,6 +51,8 @@ const RESET = `${ESC}0m`;
 const BOLD = `${ESC}1m`;
 const DIM = `${ESC}2m`;
 const REV = `${ESC}7m`;   // reverse video — used for the BIOS-style settings cursor
+const splashFg = ([r, g, b]) => `${ESC}38;2;${r};${g};${b}m`;
+const splashBg = ([r, g, b]) => `${ESC}48;2;${r};${g};${b}m`;
 
 const bold = s => `${BOLD}${s}${RESET}`;
 const dim = s => `${DIM}${s}${RESET}`;
@@ -795,7 +800,10 @@ export class TUI {
     return this.active.size > 0 || now < this._startupUntil || now < this._activityPulseUntil || now < this._switchPulseUntil;
   }
 
-  _tickDelay() { return this._animating() ? SPIN_MS : IDLE_TICK_MS; }
+  _tickDelay() {
+    if (Date.now() < this._startupUntil) return SPLASH_TICK_MS;
+    return this._animating() ? SPIN_MS : IDLE_TICK_MS;
+  }
 
   _scheduleTick() {
     if (!this.running) return;
@@ -932,6 +940,11 @@ export class TUI {
   // ── input handling ─────────────────────────────────
 
   _onData(d) {
+    if (Date.now() < this._startupUntil) {
+      this._startupUntil = 0;
+      this._retick();
+      this.render();
+    }
     if (d === '\x1b[A') return this._key('up');
     if (d === '\x1b[B') return this._key('down');
     if (d === '\x1b[C') return this._key('right');
@@ -2108,6 +2121,79 @@ export class TUI {
     try { /** @type {any} */ (process.stdout)._handle?.setBlocking?.(blocking); } catch {}
   }
 
+  _renderSplash(W, H, force) {
+    const elapsed = Date.now() - this._startupAt;
+    const logoRows = SPLASH_LOGO_HEIGHT / 2;
+    const logoTop = Math.floor((H - logoRows - 4) / 2);
+    const logoX = Math.floor((W - SPLASH_LOGO_WIDTH) / 2);
+    const visibleRows = Math.max(0, Math.min(logoRows, Math.floor((elapsed - 100) / 95)));
+    const beam = (elapsed - 800) / 65 - 4;
+    const pixel = (y, x) => {
+      const at = (y * SPLASH_LOGO_WIDTH + x) * 4;
+      const alpha = splashLogo[at + 3] / 255;
+      if (alpha < 0.02) return SPLASH_BG;
+      const light = (splashLogo[at] + splashLogo[at + 1] + splashLogo[at + 2]) / 3;
+      const glint = Math.max(0, 1 - Math.abs(x - beam) / 3) * 95;
+      const tint = x < SPLASH_LOGO_WIDTH / 2
+        ? [12 + light * 0.5, 28 + light * 0.72, 55 + light * 0.9]
+        : [45 + light * 0.83, 48 + light * 0.85, 82 + light * 0.87];
+      return tint.map((value, channel) => Math.round(SPLASH_BG[channel] * (1 - alpha) + Math.min(255, value + glint) * alpha));
+    };
+    const logoRow = row => {
+      let out = '';
+      for (let x = 0; x < SPLASH_LOGO_WIDTH; x++) {
+        out += splashFg(pixel(row * 2, x)) + splashBg(pixel(row * 2 + 1, x)) + '▀';
+      }
+      return out;
+    };
+    const lines = [];
+    for (let y = 0; y < H; y++) {
+      const stars = Array(W).fill(' ');
+      if (y % 3 !== 1) {
+        for (let n = 0; n < 2; n++) {
+          const x = (y * 37 + n * 53 + 11) % W;
+          stars[x] = (this.frame + y + n) % 4 === 0 ? '✦' : '·';
+        }
+      }
+      const starField = (from, to) => {
+        let out = '';
+        for (let x = from; x < to; x++) {
+          const star = stars[x];
+          out += star === ' ' ? ' ' : splashFg(star === '✦' ? [91, 194, 247] : [35, 85, 123]) + star + splashFg([35, 85, 123]);
+        }
+        return out;
+      };
+      let x = 0;
+      let width = 0;
+      let art = '';
+      if (y >= logoTop && y < logoTop + visibleRows) {
+        x = logoX;
+        width = SPLASH_LOGO_WIDTH;
+        art = logoRow(y - logoTop);
+      } else if (y === logoTop + logoRows + 1 && elapsed >= 1_000) {
+        const title = 'M O K E A';
+        const reveal = Math.min(title.length, Math.floor((elapsed - 1_000) / 90) + 1);
+        x = Math.floor((W - title.length) / 2);
+        width = title.length;
+        art = BOLD + splashFg([229, 237, 255]) + title.slice(0, reveal).padEnd(title.length) + `${ESC}22m`;
+      } else if (y === logoTop + logoRows + 3 && elapsed >= 1_650) {
+        const subtitle = '─  S T U D I O S  ─';
+        x = Math.floor((W - subtitle.length) / 2);
+        width = subtitle.length;
+        art = splashFg([108, 187, 224]) + subtitle;
+      }
+      lines.push(splashBg(SPLASH_BG) + splashFg([35, 85, 123])
+        + starField(0, x) + art + splashBg(SPLASH_BG) + splashFg([35, 85, 123])
+        + starField(x + width, W) + RESET);
+    }
+    let buf = `${ESC}H`;
+    for (let i = 0; i < H; i++) {
+      buf += fitLine(lines[i], W);
+      if (i < H - 1) buf += '\r\n';
+    }
+    this._paint(buf + `${ESC}?25l`, force);
+  }
+
   _render(force = false) {
     // Reset the display the instant a quota window (e.g. 5-hour session) expires,
     // instead of waiting for the next request to clear it.
@@ -2120,12 +2206,16 @@ export class TUI {
       return;
     }
 
+    if (Date.now() < this._startupUntil && W >= 50 && H >= 18 && this.mode === 'normal') {
+      this._renderSplash(W, H, force);
+      return;
+    }
+    if (W < 50 || H < 18) this._startupUntil = 0;
+
     const lines = [];
 
     // ── Header
-    const starting = Date.now() < this._startupUntil;
-    const logo = starting ? fg(PULSE_FG[this.frame % PULSE_FG.length], '◆') : cyan('◆');
-    const left = ` ${logo} ${bold('Team Mokea')}`;
+    const left = ` ${cyan('◆')} ${bold('Team Mokea')}`;
     const port = this.config.proxy?.port || 3456;
     const sess = this.am.sessionStats();
     const sessStr = (sess.active || sess.known)
@@ -2157,9 +2247,7 @@ export class TUI {
     lines.push(midFits
       ? left + ' '.repeat(start - lw) + mid + ' '.repeat(W - rw - start - mw) + right
       : left + ' '.repeat(Math.max(1, W - lw - rw)) + right);
-    const ruleWidth = W - 2;
-    const filled = starting ? Math.min(ruleWidth, Math.floor((Date.now() - this._startupAt) / STARTUP_MS * ruleWidth)) : 0;
-    lines.push(' ' + (filled ? cyan('━'.repeat(filled)) : '') + dim('─'.repeat(ruleWidth - filled)));
+    lines.push(' ' + dim('─'.repeat(W - 2)));
 
     const footerH = 2;
     // While a prompt is open (mode 'input') keep showing the screen it was
