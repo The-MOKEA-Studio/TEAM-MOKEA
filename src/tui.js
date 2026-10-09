@@ -24,17 +24,16 @@ import { isLocalUpstream } from './provider.js';
 // ── ANSI helpers ─────────────────────────────────────────────
 
 const SPINNER = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'.split('');
+const PULSE_FG = [96, 36, 37, 36];
 
 // Repaint cadence.
 //
-// The spinner is drawn only alongside in-flight requests, so animating it while
-// the proxy is idle wakes the process twice a second to redraw a frame nobody
-// can tell apart from the last one. On a laptop that is enough to keep the
-// machine from going to sleep (#134), which is a poor trade for animating
-// nothing. Tick fast only while there is something to animate; otherwise tick
-// slowly, just often enough that elapsed times and quota countdowns stay honest.
+// The spinner is drawn alongside in-flight requests, and a new activity entry
+// gets a brief pulse. Once both finish, slow the tick so an idle proxy does not
+// keep waking a laptop just to redraw an unchanged frame (#134).
 const SPIN_MS = 500;
 const IDLE_TICK_MS = 5_000;
+const ACTIVITY_PULSE_MS = 1_500;
 // Even when the composed frame is unchanged, repaint occasionally: the terminal
 // is shared state, and anything that writes over it (a stray warning, a resumed
 // job) would otherwise leave the screen corrupted until the next real change.
@@ -658,6 +657,9 @@ export class TUI {
     this.inputSecret = false;    // a key is being typed: the footer echoes * for each char
     this.inputReturn = 'normal'; // mode to fall back to when an input is cancelled
     this.frame = 0;
+    this._activityPulseUntil = 0;
+    this._switchPulseUntil = 0;
+    this._switchPulseIndex = -1;
     this.running = false;
     this.timer = null;
     /** @type {ReturnType<typeof setTimeout>|null} */
@@ -783,15 +785,18 @@ export class TUI {
   }
 
   /** Fast while something is animating, slow when there is nothing to animate. */
-  _tickDelay() { return this.active.size > 0 ? SPIN_MS : IDLE_TICK_MS; }
+  _animating() {
+    return this.active.size > 0 || Date.now() < this._activityPulseUntil || Date.now() < this._switchPulseUntil;
+  }
+
+  _tickDelay() { return this._animating() ? SPIN_MS : IDLE_TICK_MS; }
 
   _scheduleTick() {
     if (!this.running) return;
     this.timer = this._setTimeout(() => {
       if (!this.running) return;
-      // Only advance the spinner when it is actually on screen; otherwise the
-      // frame counter would change every tick and defeat the repaint dedupe.
-      if (this.active.size > 0) this.frame = (this.frame + 1) % SPINNER.length;
+      // Idle frames stay byte-identical so the repaint dedupe can skip them.
+      if (this._animating()) this.frame = (this.frame + 1) % SPINNER.length;
       this.render();
       this._scheduleTick();
     }, this._tickDelay());
@@ -892,7 +897,7 @@ export class TUI {
     const sid = info.sessionId || r?.sessionId || null;
     const pin = (info.pinned || r?.pinned) ? dim(' [pin]') : '';
     this._addLog(`${this._sessionTag(sid)} ${info.method} ${info.path}${model} → ${acct}${pin} (${info.status}, ${dur}s)`);
-    if (this.active.size === 0) this._retick();   // animating → idle
+    if (this.active.size === 0) this._retick();   // request spinner → activity pulse
   }
 
   _addLog(msg) {
@@ -902,11 +907,20 @@ export class TUI {
     msg = scrubLine(msg).replace(/^\[Team Mokea\]\s*/, '');
     const t = timestamp();
     this.log.unshift({ t, msg });
+    const wasAnimating = this._animating();
+    this._activityPulseUntil = Date.now() + ACTIVITY_PULSE_MS;
+    if (msg.startsWith('Switched to "')) {
+      this._switchPulseIndex = this.am.currentIndex;
+      this._switchPulseUntil = this._activityPulseUntil;
+    }
     if (this.log.length > 200) this.log.length = 200;
     // sanitizeText, not `strip`: the latter removes SGR colour only, so an
     // erase or cursor-move sequence reached the file, as did a newline.
     if (this._activityStream) this._activityStream.write(`${t}  ${sanitizeText(msg)}\n`);
-    if (this.running) this.render();
+    if (this.running) {
+      this.render();
+      if (!wasAnimating) this._retick();
+    }
   }
 
   // ── input handling ─────────────────────────────────
@@ -2103,7 +2117,7 @@ export class TUI {
     const lines = [];
 
     // ── Header
-    const left = bold(' Team Mokea');
+    const left = ` ${cyan('◆')} ${bold('Team Mokea')}`;
     const port = this.config.proxy?.port || 3456;
     const sess = this.am.sessionStats();
     const sessStr = (sess.active || sess.known)
@@ -2203,7 +2217,7 @@ export class TUI {
     lines.push('');
     const ac = this.active.size;
     const acTag = ac > 0 ? `  ${cyan(ac + ' active')}` : '';
-    const aHdr = this.remote ? ' Messages ' : ` Activity${acTag} `;
+    const aHdr = this.remote ? ` ${cyan('◆')} Messages ` : ` ${cyan('◆')} Activity${acTag} `;
     lines.push(aHdr + dim('─'.repeat(Math.max(1, W - vw(aHdr)))));
 
     // Active requests
@@ -2220,7 +2234,9 @@ export class TUI {
     // Completed log
     const space = Math.max(0, H - lines.length - footerH);
     for (let i = 0; i < space && i < this.log.length; i++) {
-      lines.push(`   ${gray(this.log[i].t)}  ${this.log[i].msg}`);
+      const fresh = i === 0 && now < this._activityPulseUntil;
+      const mark = fresh ? fg(PULSE_FG[this.frame % PULSE_FG.length], '●') : ' ';
+      lines.push(` ${mark} ${gray(this.log[i].t)}  ${this.log[i].msg}`);
     }
     } // end non-settings body
 
@@ -2557,7 +2573,8 @@ export class TUI {
     const barShown = fam => showBoth && showFamily && q[fam === 'fable' ? 'unified7dFable' : 'unified7dSonnet'] != null;
     const cursorAt = selFamily && barShown(selFamily) ? selFamily : null;
     const sel = !isSel ? ' ' : cursorAt ? dim('>') : cyan('>');
-    const cur = isCur ? green('►') : ' ';
+    const switching = isCur && idx === this._switchPulseIndex && Date.now() < this._switchPulseUntil;
+    const cur = isCur ? (switching ? fg(PULSE_FG[this.frame % PULSE_FG.length], '►') : green('►')) : ' ';
     // The column before a family bar's marker: the cursor when it moved here, else the separator space.
     const famLead = fam => (cursorAt === fam ? cyan('>') : ' ');
 
