@@ -1,0 +1,22 @@
+services:
+  team-mokea:
+    build: .
+    image: team-mokea:local
+    container_name: team-mokea-docker
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${TEAM_MOKEA_DOCKER_PORT:-3456}:3456"
+    environment:
+      TEAM_MOKEA_CONFIG: /data/team-mokea.json
+      TEAM_MOKEA_HOST: 0.0.0.0
+    volumes:
+      - type: bind
+        source: ${TEAM_MOKEA_CONFIG_FILE:?Set TEAM_MOKEA_CONFIG_FILE in .env}
+        target: /data/team-mokea.json
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${TEAM_MOKEA_STATE_FILE:?Set TEAM_MOKEA_STATE_FILE in .env}
+        target: /data/team-mokea.state.json
+        bind:
+          create_host_path: false

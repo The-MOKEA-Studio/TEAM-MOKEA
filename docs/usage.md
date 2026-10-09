@@ -18,6 +18,17 @@ It falls back to plain log output when stdout is not a TTY (e.g. running as a se
 
 A container image is published to GHCR on every version bump (`ghcr.io/the-mokea-studio/team-mokea`, tagged `latest`, `1`, `1.1` and the full version). It runs `server --headless` bound to `0.0.0.0` inside the container, so publish the port and bind-mount the config file:
 
+For a local checkout, Compose builds the image and keeps the browser dashboard on localhost. Copy `.env.example` to `.env`, set the config and state paths to your existing Team Mokea files, then run:
+
+```bash
+docker compose up --build -d
+docker compose logs -f
+```
+
+The web dashboard is at `http://localhost:3456/team-mokea/dashboard` (or the port in `TEAM_MOKEA_DOCKER_PORT`). Stop the host-run Team Mokea server before starting the container: both use the same config and state files, and only one process should write them. Stop the container with `docker compose down`.
+
+On this Mac, the paths from `.env.example` can be set to `/Users/team-mokea/.config/teamclaude.json` and `/Users/team-mokea/.config/teamclaude.state.json`.
+
 ```bash
 docker run -d --name team-mokea -p 3456:3456 \
   -v ~/.config/team-mokea.json:/data/team-mokea.json \
