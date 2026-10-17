@@ -38,7 +38,7 @@ import { SessionTitles } from './session-titles.js';
 import { captureEarlyConsole } from './early-log.js';
 import { RemoteControl, createAttachSession } from './tui-remote.js';
 import { SxManager } from './sx.js';
-import { autoUpdate, checkForUpdate, currentVersion, resolveVersionLabel, runUpdate, installKind, updateAvailableFromCache, PKG_NAME } from './updater.js';
+import { autoUpdate, checkForUpdate, currentVersion, resolveVersionLabel, runUpdate, installKind, updateAvailableFromCache, UPDATE_COMMAND } from './updater.js';
 import { renderStatus, formatPercent } from './status-renderer.js';
 import { sanitizeText } from './safe-text.js';
 import { ClientUsageTracker, UsageDimensionTracker } from './client-usage.js';
@@ -2404,7 +2404,7 @@ async function updateCommand() {
 
   const info = await checkForUpdate({ force: true });
   if (!info) {
-    console.error('Could not reach the npm registry to check for updates.');
+    console.error('Could not reach GitHub to check for updates.');
     process.exitCode = 1;
     return;
   }
@@ -2414,11 +2414,11 @@ async function updateCommand() {
   }
 
   console.log(`Updating ${info.current} → ${info.latest} …`);
-  const ok = await runUpdate(info.latest);
+  const ok = await runUpdate(info.latest, { commit: info.commit });
   if (ok) {
     console.log(`Updated to ${info.latest}. Restart team-mokea to use the new version.`);
   } else {
-    console.error(`Update failed. Try manually: npm install -g ${PKG_NAME}@latest`);
+    console.error(`Update failed. Try manually: ${UPDATE_COMMAND}`);
     process.exitCode = 1;
   }
 }
@@ -2735,7 +2735,7 @@ Commands:
   callback status     Show who is signed in to callback.net
   callback sync       Reconcile the running server with the store now
   callback logout     Revoke that session and forget it
-  update              Check npm for a newer team-mokea and install it
+  update              Check GitHub for a newer team-mokea and install it
   version             Print the installed version
   help                Show this help
 

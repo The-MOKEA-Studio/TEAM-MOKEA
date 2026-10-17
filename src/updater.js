@@ -3,7 +3,7 @@
 // We ONLY ever touch a global npm install (`npm install -g @the-mokea-studio/team-mokea`):
 //   - a git checkout (a `.git` at the package root) is a dev tree — never touched;
 //   - a local dependency / npx copy is left alone (we only notify).
-// Checks hit the npm registry at most once a day (cached in a small file next to
+// Checks hit GitHub at most once a day (cached in a small file next to
 // the config), so the overwhelmingly common invocation does zero network I/O.
 // Disable entirely with TEAM_MOKEA_DISABLE_AUTOUPDATE=1 or config.autoUpdate=false.
 //
@@ -21,6 +21,8 @@ import { safeLine } from './safe-text.js';
 import { envVar } from './brand.js';
 
 export const PKG_NAME = '@the-mokea-studio/team-mokea';
+export const GITHUB_REPO = 'The-MOKEA-Studio/TEAM-MOKEA';
+export const UPDATE_COMMAND = `npm install -g github:${GITHUB_REPO}`;
 const REGISTRY = 'https://registry.npmjs.org';
 const DAY_MS = 24 * 60 * 60 * 1000;
 // Wide enough for `v1.2.3-rc.1+build`, narrow enough that a tag cannot be the
@@ -28,6 +30,30 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const LABEL_MAX = 32;
 
 const pexec = promisify(execFile);
+
+/** Fetch a release version and the exact commit that contains it. */
+export async function fetchGithubRelease({ fetchImpl = fetch, timeoutMs = 5000 } = {}) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const head = await fetchImpl(`https://api.github.com/repos/${GITHUB_REPO}/commits/master`, {
+      signal: ctrl.signal, headers: { accept: 'application/vnd.github+json' },
+    });
+    if (!head.ok) return null;
+    const { sha } = await head.json();
+    if (!isCommit(sha)) return null;
+    const response = await fetchImpl(`https://raw.githubusercontent.com/${GITHUB_REPO}/${sha}/package.json`, { signal: ctrl.signal });
+    if (!response.ok) return null;
+    const { name, version } = await response.json();
+    return name === PKG_NAME && isReleaseVersion(version) ? { version, commit: sha } : null;
+  } catch { return null; }
+  finally { clearTimeout(timer); }
+}
+
+/** @param {unknown} value */
+export function isCommit(value) {
+  return typeof value === 'string' && value.length === 40 && /^[a-f0-9]{40}$/.test(value);
+}
 
 /** Package root = one directory above this file's src/ directory. */
 function packageRoot() {
@@ -137,7 +163,7 @@ export async function fetchLatestVersion({ fetchImpl = fetch, timeoutMs = 5000 }
 }
 
 function defaultCacheFile() {
-  return join(dirname(getConfigPath()), 'update-check.json');
+  return join(dirname(getConfigPath()), 'github-update-check.json');
 }
 /**
  * @param {string} path
@@ -155,7 +181,7 @@ async function writeCache(path, obj) {
 
 /**
  * Throttled version check. Returns { current, latest, updateAvailable } or null
- * if the version is unknown / the registry couldn't be reached and nothing is
+ * if the version is unknown / the update source couldn't be reached and nothing is
  * cached. Only fetches when the cached check is older than `intervalMs` (or
  * `force`), so back-to-back invocations do no network I/O.
  */
@@ -166,18 +192,27 @@ export async function checkForUpdate({
   now = Date.now(),
   intervalMs = DAY_MS,
   force = false,
+  source = 'github',
 } = {}) {
   if (!current) return null;
   const cache = await readCache(cachePath);
   let latest = cache.latest || null;
-  const fresh = cache.checkedAt && (now - cache.checkedAt) < intervalMs;
+  let commit = cache.commit;
+  const fresh = cache.checkedAt && (now - cache.checkedAt) < intervalMs
+    && (source === 'npm' ? cache.source !== 'github' : cache.source === 'github');
   if (force || !fresh) {
-    const fetched = await fetchLatestVersion({ fetchImpl });
-    if (fetched) latest = fetched;
-    await writeCache(cachePath, { checkedAt: now, latest });
+    if (source === 'npm') {
+      const fetched = await fetchLatestVersion({ fetchImpl });
+      if (fetched) latest = fetched;
+    } else {
+      const release = await fetchGithubRelease({ fetchImpl });
+      if (release) { latest = release.version; commit = release.commit; }
+    }
+    await writeCache(cachePath, { checkedAt: now, latest, source, ...(source === 'npm' ? {} : { commit }) });
   }
-  if (!latest) return null;
-  return { current, latest, updateAvailable: compareVersions(latest, current) > 0 };
+  if (!latest || (source !== 'npm' && !isCommit(commit))) return null;
+  return { current, latest, updateAvailable: compareVersions(latest, current) > 0,
+    ...(source === 'npm' ? {} : { commit }) };
 }
 
 /**
@@ -207,12 +242,12 @@ export async function updateAvailableFromCache({ current = currentVersion(), cac
  * @param {unknown} v
  */
 export function isReleaseVersion(v) {
-  return /^\d+\.\d+\.\d+$/.test(String(v));
+  return typeof v === 'string' && v.trim() === v && /^\d+\.\d+\.\d+$/.test(v);
 }
 
 /**
- * Install a specific version globally. Resolves true on success. `version` must
- * be a release version (or the literal `latest`), or nothing is spawned.
+ * Install a checked GitHub commit globally, or an npm version for legacy callers.
+ * Resolves true on success. Both the version and optional commit are validated.
  *
  * The install is a child process the event loop keeps running beside, never a
  * synchronous wait. `autoUpdate` runs this inside `server --headless`, the one
@@ -226,12 +261,16 @@ export function isReleaseVersion(v) {
  * `spawnImpl` is injectable and must return a ChildProcess-shaped emitter
  * ('exit' with a code, or 'error').
  */
-export function runUpdate(version = 'latest', { spawnImpl = spawn } = {}) {
+export function runUpdate(version = 'latest', { spawnImpl = spawn, commit = /** @type {string|undefined} */ (undefined) } = {}) {
   if (version !== 'latest' && !isReleaseVersion(version)) return Promise.resolve(false);
+  if (commit !== undefined && !isCommit(commit)) return Promise.resolve(false);
+  const target = commit
+    ? `https://codeload.github.com/${GITHUB_REPO}/tar.gz/${commit}`
+    : `${PKG_NAME}@${version}`;
   return new Promise((resolve) => {
     let child;
     try {
-      child = spawnImpl('npm', ['install', '-g', `${PKG_NAME}@${version}`], {
+      child = spawnImpl('npm', ['install', '-g', target, '--ignore-scripts'], {
         stdio: 'inherit',
         timeout: 180000,
       });
@@ -288,8 +327,8 @@ export async function autoUpdate({
   const info = await check({ force });
   if (!info) return { skipped: 'check-failed' };
   if (!info.updateAvailable) return { ...info, upToDate: true };
-  if (!isReleaseVersion(info.latest)) {
-    log(`[Team Mokea] Ignoring registry "latest" that is not a release version: ${JSON.stringify(String(info.latest)).slice(0, 80)}`);
+  if (!isReleaseVersion(info.latest) || (info.commit !== undefined && !isCommit(info.commit))) {
+    log(`[Team Mokea] Ignoring update that is not a release version or has an invalid commit: ${JSON.stringify(String(info.latest)).slice(0, 80)}`);
     return { ...info, skipped: 'bad-version' };
   }
 
@@ -298,9 +337,9 @@ export async function autoUpdate({
     return { ...info, notified: true };
   }
   log(`[Team Mokea] Updating ${info.current} → ${info.latest}…`);
-  const ok = await install(info.latest);
+  const ok = await install(info.latest, { commit: info.commit });
   log(ok
     ? `[Team Mokea] Updated to ${info.latest}. Restart team-mokea to use the new version.`
-    : `[Team Mokea] Auto-update failed. Run manually: npm install -g ${PKG_NAME}@latest`);
+    : `[Team Mokea] Auto-update failed. Run manually: ${UPDATE_COMMAND}`);
   return { ...info, updated: ok };
 }

@@ -297,7 +297,11 @@ It speaks both the stateless 2026-07-28 revision of the protocol and the handsha
 
 ## Auto-update
 
-When Team Mokea is installed globally via npm, it self-updates in the background: it checks the npm registry at most once a day, and when a newer version is published it runs `npm install -g @the-mokea-studio/team-mokea@latest` and applies it on the next launch. The check runs after a `team-mokea run` session ends and when a headless server starts. In a headless server the install runs as a background child process, so the proxy keeps serving requests while npm works (a synchronous install used to stall it for the duration). A git checkout is never touched — update that with `git pull`. Run `team-mokea update` to update on demand.
+Global npm installs, including installs from GitHub, update automatically. Team Mokea checks the version in `The-MOKEA-Studio/TEAM-MOKEA` on GitHub at most once a day. When `package.json` declares a newer version, npm installs the exact commit checked, with lifecycle scripts disabled. Updates apply on the next launch; publishing a release requires increasing the package version.
+
+The check runs after a `team-mokea run` session ends and when a headless Claude server starts. Codex checks run in a detached worker after `team-mokea codex run`, `resume`, or `server` exits, so checking and installing cannot delay Codex startup or interrupt its terminal UI. Codex reads `autoUpdate` from its own `teamcodex.json` (or `TEAMCLAUDE_CONFIG`). Network or installation failures leave the current CLI usable. A git checkout is never touched — update that with `git pull`. Local/npx installs only receive an update notice; automatic installation runs only for a global install and never as root.
+
+Run `team-mokea update` or `team-mokea codex update` to check and install on demand.
 
 Disable it with `TEAM_MOKEA_DISABLE_AUTOUPDATE=1` or `"autoUpdate": false` in the config.
 

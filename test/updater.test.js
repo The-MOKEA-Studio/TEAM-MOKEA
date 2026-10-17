@@ -7,7 +7,61 @@ import { join } from 'node:path';
 import {
   compareVersions, installKind, fetchLatestVersion, checkForUpdate, runUpdate, autoUpdate, isReleaseVersion,
   resolveVersionLabel, updateAvailableFromCache, PKG_NAME,
+  fetchGithubRelease, GITHUB_REPO,
 } from '../src/updater.js';
+
+test('GitHub checks cache a version and immutable commit, and install that commit', async () => {
+  const commit = 'a'.repeat(40);
+  const urls = [];
+  const fetchImpl = async url => {
+    urls.push(url);
+    return { ok: true, json: async () => url.includes('/commits/')
+      ? { sha: commit } : { name: PKG_NAME, version: '2.0.0' } };
+  };
+  const cachePath = tmpCache();
+  const info = await checkForUpdate({ current: '1.0.0', cachePath, fetchImpl, now: 1000 });
+  assert.deepEqual(info, { current: '1.0.0', latest: '2.0.0', updateAvailable: true, commit });
+  await checkForUpdate({ current: '1.0.0', cachePath, fetchImpl, now: 2000 });
+  assert.equal(urls.length, 2, 'one GitHub check within a day');
+  assert.equal(urls[1], `https://raw.githubusercontent.com/${GITHUB_REPO}/${commit}/package.json`);
+  const calls = [];
+  assert.equal(await runUpdate(info.latest, { commit: info.commit, spawnImpl: fakeSpawn(calls) }), true);
+  assert.deepEqual(calls[0][1], ['install', '-g', `https://codeload.github.com/${GITHUB_REPO}/tar.gz/${commit}`, '--ignore-scripts']);
+});
+
+test('GitHub errors and unsafe commits never become install targets', async () => {
+  assert.equal(await fetchGithubRelease({ fetchImpl: async () => { throw Error('offline'); } }), null);
+  let attempts = 0;
+  const cachePath = tmpCache();
+  const offline = { current: '1.0.0', cachePath, fetchImpl: async () => { attempts++; throw Error('offline'); } };
+  assert.equal(await checkForUpdate({ ...offline, now: 1000 }), null);
+  assert.equal(await checkForUpdate({ ...offline, now: 2000 }), null);
+  assert.equal(attempts, 1, 'offline checks are also throttled');
+  for (const commit of ['main', '../other', `${'a'.repeat(40)}\n`]) {
+    let calls = 0;
+    assert.equal(await fetchGithubRelease({ fetchImpl: async () => {
+      calls++;
+      return { ok: true, json: async () => ({ sha: commit }) };
+    } }), null);
+    assert.equal(calls, 1);
+    assert.equal(await runUpdate('2.0.0', { commit, spawnImpl: () => { throw Error('must not spawn'); } }), false);
+  }
+});
+
+test('automatic updates honor both config and environment opt-outs', async () => {
+  const root = nonGitRoot();
+  const previous = process.env.TEAM_MOKEA_DISABLE_AUTOUPDATE;
+  try {
+    const check = () => { throw Error('must not check'); };
+    assert.equal((await autoUpdate({ root, uid: 1000, config: { autoUpdate: false }, check })).skipped, 'disabled');
+    process.env.TEAM_MOKEA_DISABLE_AUTOUPDATE = '1';
+    assert.equal((await autoUpdate({ root, uid: 1000, check })).skipped, 'disabled');
+  } finally {
+    if (previous === undefined) delete process.env.TEAM_MOKEA_DISABLE_AUTOUPDATE;
+    else process.env.TEAM_MOKEA_DISABLE_AUTOUPDATE = previous;
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 // ── compareVersions ─────────────────────────────────────────
 
@@ -67,7 +121,7 @@ test('checkForUpdate fetches when uncached and reports an available update', asy
   const cachePath = tmpCache();
   let calls = 0;
   const fetchImpl = async () => { calls++; return { ok: true, json: async () => ({ 'dist-tags': { latest: '2.0.0' } }) }; };
-  const info = await checkForUpdate({ current: '1.0.0', cachePath, fetchImpl, now: 1_000 });
+  const info = await checkForUpdate({ source: 'npm', current: '1.0.0', cachePath, fetchImpl, now: 1_000 });
   assert.deepEqual(info, { current: '1.0.0', latest: '2.0.0', updateAvailable: true });
   assert.equal(calls, 1);
 });
@@ -77,9 +131,9 @@ test('checkForUpdate does NOT hit the network while the cache is fresh', async (
   let calls = 0;
   const fetchImpl = async () => { calls++; return { ok: true, json: async () => ({ 'dist-tags': { latest: '2.0.0' } }) }; };
   // First call populates the cache at t=1000.
-  await checkForUpdate({ current: '1.0.0', cachePath, fetchImpl, now: 1_000 });
+  await checkForUpdate({ source: 'npm', current: '1.0.0', cachePath, fetchImpl, now: 1_000 });
   // Second call an hour later: cache still fresh → no fetch, still reports update.
-  const info = await checkForUpdate({ current: '1.0.0', cachePath, fetchImpl, now: 1_000 + 3_600_000 });
+  const info = await checkForUpdate({ source: 'npm', current: '1.0.0', cachePath, fetchImpl, now: 1_000 + 3_600_000 });
   assert.equal(calls, 1, 'no second network call within the interval');
   assert.equal(info.updateAvailable, true);
 });
@@ -88,17 +142,17 @@ test('checkForUpdate refetches once the interval elapses, and force overrides', 
   const cachePath = tmpCache();
   let calls = 0;
   const fetchImpl = async () => { calls++; return { ok: true, json: async () => ({ 'dist-tags': { latest: '1.0.0' } }) }; };
-  await checkForUpdate({ current: '1.0.0', cachePath, fetchImpl, now: 0 });
-  await checkForUpdate({ current: '1.0.0', cachePath, fetchImpl, now: 25 * 3600_000 }); // > 1 day later
+  await checkForUpdate({ source: 'npm', current: '1.0.0', cachePath, fetchImpl, now: 0 });
+  await checkForUpdate({ source: 'npm', current: '1.0.0', cachePath, fetchImpl, now: 25 * 3600_000 }); // > 1 day later
   assert.equal(calls, 2, 'refetched after the interval');
-  await checkForUpdate({ current: '1.0.0', cachePath, fetchImpl, now: 25 * 3600_000, force: true });
+  await checkForUpdate({ source: 'npm', current: '1.0.0', cachePath, fetchImpl, now: 25 * 3600_000, force: true });
   assert.equal(calls, 3, 'force bypasses the throttle');
 });
 
 test('checkForUpdate reports no update when already on the latest', async () => {
   const cachePath = tmpCache();
   const fetchImpl = async () => ({ ok: true, json: async () => ({ 'dist-tags': { latest: '1.1.1' } }) });
-  const info = await checkForUpdate({ current: '1.1.1', cachePath, fetchImpl, now: 1 });
+  const info = await checkForUpdate({ source: 'npm', current: '1.1.1', cachePath, fetchImpl, now: 1 });
   assert.equal(info.updateAvailable, false);
 });
 
@@ -119,7 +173,7 @@ test('runUpdate invokes the global npm install for the requested version', async
   const calls = [];
   const ok = await runUpdate('2.3.4', { spawnImpl: fakeSpawn(calls) });
   assert.equal(ok, true);
-  assert.deepEqual(calls[0].slice(0, 2), ['npm', ['install', '-g', `${PKG_NAME}@2.3.4`]]);
+  assert.deepEqual(calls[0].slice(0, 2), ['npm', ['install', '-g', `${PKG_NAME}@2.3.4`, '--ignore-scripts']]);
 });
 
 test('runUpdate resolves false when npm fails', async () => {

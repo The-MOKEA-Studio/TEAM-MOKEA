@@ -42,6 +42,12 @@ The Codex commands use `~/.config/teamcodex.json` and port 3457 by default,
 including accounts imported with `teamcodex codex import`. `team-mokea claude run`
 is also accepted as an explicit spelling of `team-mokea run`.
 
+Global installs automatically check GitHub for a newer version once a day and
+apply updates on the next launch. Codex updates run in the background after a
+session ends. Run `team-mokea update` (or `team-mokea codex update`) to update
+manually. Disable checks with `TEAM_MOKEA_DISABLE_AUTOUPDATE=1` or
+`"autoUpdate": false` in the provider's config. See [Auto-update](docs/usage.md#auto-update).
+
 ## What it does
 
 - Rotates to the next account when the 5h session or 7d weekly bucket reaches the threshold (98% by default), preferring the account whose weekly quota resets soonest.
