@@ -29,6 +29,19 @@ team-mokea run       # in another terminal: Claude Code through the proxy
 
 Already logged into Claude Code? `team-mokea import` takes its credentials instead of a fresh OAuth round. A container image is on GHCR — see [Running in a container](docs/usage.md#running-in-a-container). API keys, and one email holding accounts in several orgs, are covered in [docs/accounts.md](docs/accounts.md).
 
+For Codex, install this repository's CLI and use its `codex` subcommand:
+
+```bash
+npm install -g github:The-MOKEA-Studio/TEAM-MOKEA
+team-mokea codex import   # reuse your current Codex login
+team-mokea codex server   # start the Codex proxy
+team-mokea codex run      # in another terminal
+```
+
+The Codex commands use `~/.config/teamcodex.json` and port 3457 by default,
+including accounts imported with `teamcodex codex import`. `team-mokea claude run`
+is also accepted as an explicit spelling of `team-mokea run`.
+
 ## What it does
 
 - Rotates to the next account when the 5h session or 7d weekly bucket reaches the threshold (98% by default), preferring the account whose weekly quota resets soonest.
@@ -44,7 +57,7 @@ Already logged into Claude Code? `team-mokea import` takes its credentials inste
 - Pools OpenAI Codex subscriptions alongside Claude accounts (experimental): the Codex CLI is routed through the same proxy, by config or transparently through the MITM proxy, and rotates on its own quota.
 - Takes any Anthropic-compatible API (DeepSeek, GLM) as a low-priority fallback for when the Claude accounts are done.
 - Sends one account's traffic through its own HTTP or SOCKS proxy (`login --routing "socks5h://user:pass@host:1080"`), sign-in and token refresh included, and leaves every other account alone. If that proxy goes down, the request fails over to the next account.
-- No dependencies. Node built-ins only.
+- Claude proxy uses Node built-ins only. Codex commands use the bundled, commit-pinned TeamCodex dependency.
 
 ## Everyday commands
 

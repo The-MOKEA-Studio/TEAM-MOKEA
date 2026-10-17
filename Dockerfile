@@ -24,9 +24,10 @@ ENV NODE_ENV=production \
 WORKDIR /app
 
 COPY --chown=root:root package.json LICENSE ./
+RUN npm install --omit=dev --ignore-scripts --no-package-lock
 COPY --chown=root:root --chmod=755 src/ ./src/
 
-RUN ln -s /app/src/index.js /usr/local/bin/team-mokea
+RUN ln -s /app/src/cli.js /usr/local/bin/team-mokea
 
 COPY --chown=root:root --chmod=755 docker-entrypoint.sh /usr/local/bin/
 

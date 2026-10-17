@@ -5,14 +5,14 @@
   "type": "module",
   "main": "src/index.js",
   "bin": {
-    "team-mokea": "src/index.js",
+    "team-mokea": "src/cli.js",
     "teamclaude": "src/index.js"
   },
   "files": [
     "src/"
   ],
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node src/cli.js",
     "test": "node --test --test-timeout=120000",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json",
@@ -44,6 +44,9 @@
   "homepage": "https://github.com/The-MOKEA-Studio/TEAM-MOKEA#readme",
   "engines": {
     "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "teamcodex": "https://codeload.github.com/MOKEA-Studio/Team-MOKEA/tar.gz/691911b149a60996f84db8f8d086e8684d8ce4db"
   },
   "devDependencies": {
     "@types/node": "20.19.43",
