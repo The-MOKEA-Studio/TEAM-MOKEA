@@ -3,8 +3,7 @@
 A community fork of [TeamClaude](https://github.com/KarpelesLab/teamclaude), rebranded and maintained by The MOKEA Studio.
 
 [![CI](https://github.com/The-MOKEA-Studio/TEAM-MOKEA/actions/workflows/ci.yml/badge.svg)](https://github.com/The-MOKEA-Studio/TEAM-MOKEA/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/@the-mokea-studio/team-mokea.svg)](https://www.npmjs.com/package/@the-mokea-studio/team-mokea)
-[![node](https://img.shields.io/node/v/@the-mokea-studio/team-mokea.svg)](https://nodejs.org)
+[![node](https://img.shields.io/badge/node-%3E%3D20-green)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Multi-account proxy for [Claude Code](https://claude.ai/claude-code) and [Codex](https://github.com/openai/codex): it pools Claude Max, ChatGPT/Codex, API-key and third-party backend accounts, and rotates on quota.
@@ -20,19 +19,18 @@ It sits between the coding agent and the provider's API, holds several accounts,
 Node.js 20+ required.
 
 ```bash
-npm install -g @the-mokea-studio/team-mokea
+npm install -g github:The-MOKEA-Studio/TEAM-MOKEA
 
 team-mokea login     # browser OAuth, run it once per account
 team-mokea server    # start the proxy, shows the TUI
 team-mokea run       # in another terminal: Claude Code through the proxy
 ```
 
-Already logged into Claude Code? `team-mokea import` takes its credentials instead of a fresh OAuth round. A container image is on GHCR — see [Running in a container](docs/usage.md#running-in-a-container). API keys, and one email holding accounts in several orgs, are covered in [docs/accounts.md](docs/accounts.md).
+The package is installed from GitHub with npm; it is not currently available from the npm registry. Already logged into Claude Code? `team-mokea import` takes its credentials instead of a fresh OAuth round. For Docker server setup and automatic image updates, see [Running in a container](docs/usage.md#running-in-a-container). API keys, and one email holding accounts in several orgs, are covered in [docs/accounts.md](docs/accounts.md).
 
-For Codex, install this repository's CLI and use its `codex` subcommand:
+For Codex, use the same installation with its `codex` subcommand:
 
 ```bash
-npm install -g github:The-MOKEA-Studio/TEAM-MOKEA
 team-mokea codex import   # reuse your current Codex login
 team-mokea codex server   # start the Codex proxy
 team-mokea codex run      # in another terminal

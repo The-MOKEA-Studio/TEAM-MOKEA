@@ -16,7 +16,26 @@ It falls back to plain log output when stdout is not a TTY (e.g. running as a se
 
 ### Running in a container
 
-A container image is published to GHCR on every version bump (`ghcr.io/the-mokea-studio/team-mokea`, tagged `latest`, `1`, `1.1` and the full version). It runs `server --headless` bound to `0.0.0.0` inside the container, so publish the port and bind-mount the config file:
+For a server that tracks the latest published image, use the separate server Compose file. It runs the Codex proxy and checks for a new image every 60 seconds; updates recreate the container, so active requests may be interrupted. Config and account data remain in a Docker volume. Docker Engine, Docker Compose, and access to `ghcr.io/the-mokea-studio/team-mokea:latest` are required.
+
+First import a Codex login from the server's `~/.codex/auth.json`, then start the services:
+
+```bash
+docker compose -f compose.server.yaml run --rm --no-deps \
+  -v "$HOME/.codex/auth.json:/tmp/codex-auth-source.json:ro" \
+  --entrypoint /bin/sh codex -c \
+  'cp /tmp/codex-auth-source.json /tmp/codex-auth.json && chown node:node /tmp/codex-auth.json && chmod 600 /tmp/codex-auth.json && su-exec node team-mokea codex import --from /tmp/codex-auth.json'
+docker compose -f compose.server.yaml up -d
+docker compose -f compose.server.yaml logs -f
+```
+
+The Codex listener defaults to `127.0.0.1:3457`; use an SSH tunnel for remote access. `TEAM_MOKEA_BIND_HOST` and `TEAM_MOKEA_CODEX_PORT` change the host binding. Access from outside the container requires the proxy API key. Importing copies login credentials: avoid running another client that independently refreshes the same login, and protect backups of the Docker volume.
+
+To also run the Claude server, use `docker compose -f compose.server.yaml --profile claude up -d`; its volume is separate and its default port is `127.0.0.1:3456` (`TEAM_MOKEA_CLAUDE_PORT` overrides it). Add a Claude account with `docker compose -f compose.server.yaml --profile claude run --rm --no-deps claude login --token`. A server with no accounts cannot serve requests. Stop services with `docker compose -f compose.server.yaml --profile claude down` (without `-v` to retain data).
+
+The updater uses Docker socket access, which grants broad control over the Docker host. It selects only the containers with the `team-mokea-server` scope and the enabled label. New master commits build `latest` and a commit-specific image through the Docker GitHub Actions workflow; auto-update begins only after that build succeeds and the image is available to the server. If GHCR is private, both Docker and the updater need registry credentials; see [Watchtower's private registry instructions](https://watchtower.nickfedor.com/v1.11.8/configuration/private-registries/). Do not run the old local-build Compose stack on the same ports.
+
+For a local checkout without automatic image updates, the existing Compose file builds the image and keeps the browser dashboard on localhost. It runs `server --headless` bound to `0.0.0.0` inside the container:
 
 For a local checkout, Compose builds the image and keeps the browser dashboard on localhost. Copy `.env.example` to `.env`, set the config and state paths to your existing Team Mokea files, then run:
 
@@ -38,7 +57,7 @@ docker exec -it team-mokea team-mokea login --token   # add accounts from inside
 docker exec -it team-mokea team-mokea status
 ```
 
-The entrypoint starts as root only long enough to match the runtime user to the owner of the mounted config (or of `/data` when the file does not exist yet), then drops privileges — so a file owned by your user stays writable without a `chown`. `TEAM_MOKEA_UID` (and optional `TEAM_MOKEA_GID`) override the detected owner. stderr is folded into stdout so `docker logs` shows one stream; set `TEAM_MOKEA_SPLIT_STDERR=1` to keep them apart. Auto-update is disabled in the image; pull a new tag to upgrade.
+The entrypoint starts as root only long enough to match the runtime user to the owner of the mounted config (or of `/data` when the file does not exist yet), then drops privileges — so a file owned by your user stays writable without a `chown`. `TEAM_MOKEA_UID` (and optional `TEAM_MOKEA_GID`) override the detected owner. stderr is folded into stdout so `docker logs` shows one stream; set `TEAM_MOKEA_SPLIT_STDERR=1` to keep them apart. The CLI's npm auto-update is disabled in containers; the server Compose file updates the image instead.
 
 The config is created on first start with a random `proxy.apiKey`. Anything reaching the proxy from outside the container is a non-loopback client and must present that key (see [proxy.host](configuration.md#fields)); only `team-mokea` commands run via `docker exec` are exempt.
 

@@ -1,0 +1,42 @@
+services:
+  codex:
+    image: ghcr.io/the-mokea-studio/team-mokea:latest
+    container_name: team-mokea-server-codex
+    command: ["codex", "server"]
+    restart: unless-stopped
+    ports:
+      - "${TEAM_MOKEA_BIND_HOST:-127.0.0.1}:${TEAM_MOKEA_CODEX_PORT:-3457}:3457"
+    environment:
+      TEAM_MOKEA_CONFIG: /data/teamcodex.json
+      TEAMCLAUDE_CONFIG: /data/teamcodex.json
+    volumes:
+      - codex-data:/data
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+      com.centurylinklabs.watchtower.scope: team-mokea-server
+    healthcheck:
+      disable: true
+
+  claude:
+    profiles: ["claude"]
+    image: ghcr.io/the-mokea-studio/team-mokea:latest
+    container_name: team-mokea-server-claude
+    restart: unless-stopped
+    ports:
+      - "${TEAM_MOKEA_BIND_HOST:-127.0.0.1}:${TEAM_MOKEA_CLAUDE_PORT:-3456}:3456"
+    volumes:
+      - claude-data:/data
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+      com.centurylinklabs.watchtower.scope: team-mokea-server
+
+  updater:
+    image: nickfedor/watchtower:1.11.8
+    restart: unless-stopped
+    command: ["--label-enable", "--scope", "team-mokea-server", "--interval", "60"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  codex-data:
+  claude-data:

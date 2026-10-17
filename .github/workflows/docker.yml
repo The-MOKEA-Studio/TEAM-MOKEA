@@ -2,26 +2,17 @@ name: Docker
 
 # Build and publish the container image to ghcr.io.
 #
-# Separate from publish.yml so a GHCR outage cannot fail a run that already
-# published to npm. Auth uses the built-in GITHUB_TOKEN. PRs build but never push.
+# Each master commit publishes a new latest image. PRs build but never push.
 on:
   push:
     branches: [master]
-    paths:
-      - 'package.json'
-      - 'Dockerfile'
-      - 'docker-entrypoint.sh'
-      - '.dockerignore'
-      - '.github/workflows/docker.yml'
   pull_request:
     branches: [master]
-    paths:
-      - 'package.json'
-      - 'Dockerfile'
-      - 'docker-entrypoint.sh'
-      - '.dockerignore'
-      - '.github/workflows/docker.yml'
   workflow_dispatch:
+
+concurrency:
+  group: docker-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
@@ -62,47 +53,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check whether this version is already in GHCR
-        id: check
-        if: github.event_name == 'push'
-        run: |
-          version='${{ steps.pkg.outputs.version }}'
-          image='${{ steps.image.outputs.name }}'
-          target="${REGISTRY}/${image}:${version}"
-          # An auth or network failure must not read as absent and overwrite a tag.
-          if err=$(docker manifest inspect "$target" 2>&1); then
-            echo "${image}:${version} is already in GHCR — building without pushing."
-            echo "push=false" >> "$GITHUB_OUTPUT"
-          elif printf '%s' "$err" | grep -qiE 'manifest unknown|not found|no such manifest'; then
-            echo "${image}:${version} is new — will push."
-            echo "push=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Could not determine whether ${version} exists:" >&2
-            printf '%s\n' "$err" >&2
-            exit 1
-          fi
-
-      - name: Resolve push decision
-        id: decide
-        run: |
-          if [ '${{ github.event_name }}' = 'pull_request' ]; then
-            echo "push=false" >> "$GITHUB_OUTPUT"
-          elif [ '${{ github.event_name }}' = 'workflow_dispatch' ]; then
-            echo "push=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "push=${{ steps.check.outputs.push }}" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Compute image tags and labels
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}
           tags: |
-            type=semver,pattern={{version}},value=${{ steps.pkg.outputs.version }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ steps.pkg.outputs.version }}
-            type=semver,pattern={{major}},value=${{ steps.pkg.outputs.version }}
             type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=long
             type=ref,event=pr
           labels: |
             org.opencontainers.image.title=team-mokea
@@ -114,7 +72,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: ${{ steps.decide.outputs.push == 'true' }}
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
@@ -127,7 +85,7 @@ jobs:
       # Needs attestations: write to persist, on top of id-token: write to mint the
       # OIDC token. The digest guard skips the build-without-push case.
       - name: Attest build provenance
-        if: steps.decide.outputs.push == 'true' && steps.build.outputs.digest != ''
+        if: github.event_name != 'pull_request' && steps.build.outputs.digest != ''
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}
